@@ -37,30 +37,32 @@ if [[ "$INSTALL_OLLAMA" -eq 1 ]]; then
   curl -fsSL https://ollama.com/install.sh | sh
 fi
 
+echo "Already have Ollama and a Qwen model? Skip --download-model and --install-ollama."
+echo "Pass whatever name 'ollama list' shows. The demo default is qwen2.5:1.5b."
+
 if command -v ollama >/dev/null 2>&1; then
   echo "Ollama is installed. Keep it on loopback only:"
   echo "  export OLLAMA_HOST=127.0.0.1:11434"
-  echo "Primary model, when this machine is allowed to reach the network:"
+  echo "  ollama list"
+  echo "Pull only when this machine may use the network and the tag is missing:"
   echo "  ollama pull qwen2.5:1.5b"
-  echo "Or create a local model from a GGUF after download:"
+  echo "After a LoRA export, register the GGUF with Ollama (LLamaSharp is not required):"
   echo "  ollama create paint-queue-advisor -f $ROOT/scripts/ollama/Modelfile"
 else
-  echo "Ollama is not installed. Re-run with --install-ollama, or copy a GGUF and use the LLamaSharp path."
+  echo "Ollama is not installed. Re-run with --install-ollama if this machine may use the network."
 fi
 
 if [[ "$DOWNLOAD" -eq 1 ]]; then
   "$ROOT/scripts/download-model.sh" "$VARIANT"
 else
-  echo "Skip weight download. Place the primary file at:"
+  echo "Skip weight download. An existing 'ollama list' entry is enough."
+  echo "Download a GGUF only when you need to create an Ollama model offline:"
   echo "  $ROOT/models/qwen2.5-1.5b-instruct-q4_k_m.gguf"
-  echo "Optional: Qwen2.5-3B Q4_K_M or Phi-3-mini-4k-instruct Q4. Do not commit them."
 fi
 
 echo
 echo "CPU only. Do not assume CUDA. The plant iGPU is Intel UHD 770."
-echo "Check without a model:"
-echo "  dotnet run --project src/PaintQueueLocalAi.Demo -- --self-check"
-echo "Ollama:"
-echo "  dotnet run --project src/PaintQueueLocalAi.Demo -- --provider ollama --model qwen2.5:1.5b --timeout-ms 5000"
-echo "GGUF:"
-echo "  dotnet run --project src/PaintQueueLocalAi.Demo -- --provider llamasharp --model-path models/qwen2.5-1.5b-instruct-q4_k_m.gguf --timeout-ms 5000"
+echo "Rules only:"
+echo "  dotnet run --project src/PaintQueueLocalAi.Demo -- --provider null"
+echo "Ollama + Qwen (falls back to the rules if Ollama is down):"
+echo "  dotnet run --project src/PaintQueueLocalAi.Demo -- --provider ollama --model qwen2.5:1.5b"

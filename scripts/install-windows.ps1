@@ -23,7 +23,9 @@ New-Item -ItemType Directory -Force -Path $ModelDirectory | Out-Null
 
 Write-Host "Repo: $Root"
 Write-Host "Model directory (do not commit): $ModelDirectory"
-Write-Host "Target: Intel i5-14500, 16 GB RAM, Intel UHD 770, CPU llama.cpp, no CUDA."
+Write-Host "Target: Intel i5-14500, 16 GB RAM, Intel UHD 770, CPU only, no CUDA."
+Write-Host "Already have Ollama and Qwen? Skip -DownloadModel and -InstallOllama."
+Write-Host "Use the name from 'ollama list'. The demo default is qwen2.5:1.5b."
 
 $Dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
 if (-not $Dotnet) {
@@ -47,11 +49,19 @@ if ($InstallOllama) {
     Write-Host "Set OLLAMA_HOST=127.0.0.1:11434 for the current user."
 }
 
-if ($InstallOllama -or $Provider -eq "Ollama") {
+if ($Provider -eq "LlamaSharp") {
+    Write-Host "LLamaSharp is secondary. The demo does not load GGUF."
+    Write-Host "Register the file with Ollama instead:"
+    Write-Host "  ollama create paint-queue-advisor -f scripts\ollama\Modelfile"
+}
+
+if ($InstallOllama -or $Provider -eq "Ollama" -or $Provider -eq "Check") {
     Write-Host "Keep Ollama on loopback: OLLAMA_HOST=127.0.0.1:11434"
-    Write-Host "After Ollama is on PATH, load the base model only if this PC may use the network:"
+    Write-Host "If Qwen is already listed, do not pull or download weights:"
+    Write-Host "  ollama list"
+    Write-Host "Pull only when this PC may use the network and the tag is missing:"
     Write-Host "  ollama pull qwen2.5:1.5b"
-    Write-Host "Offline GGUF model:"
+    Write-Host "After LoRA export, register the GGUF with Ollama. LLamaSharp is not required:"
     Write-Host "  ollama create paint-queue-advisor -f scripts\ollama\Modelfile"
 }
 
@@ -61,17 +71,15 @@ if ($DownloadModel) {
     if ($Variant -eq "phi3") { $FileName = "Phi-3-mini-4k-instruct-q4.gguf" }
     & (Join-Path $PSScriptRoot "download-model.ps1") -Variant $Variant -Destination (Join-Path $ModelDirectory $FileName)
 } else {
-    Write-Host "Skip weight download. Copy this file from a machine that is allowed online:"
+    Write-Host "Skip weight download. An existing 'ollama list' entry is enough."
+    Write-Host "Copy a GGUF only when creating an Ollama model offline:"
     Write-Host "  $ModelDirectory\qwen2.5-1.5b-instruct-q4_k_m.gguf"
-    Write-Host "Optional heavier models: Qwen2.5-3B Q4_K_M, Phi-3-mini-4k-instruct Q4."
 }
 
 Write-Host ""
-Write-Host "Self-check without a model:"
-Write-Host "  dotnet run --project src\PaintQueueLocalAi.Demo -- --self-check"
-Write-Host "Ollama (longer timeout for a manual explanation; the line default stays 200 ms):"
-Write-Host "  dotnet run --project src\PaintQueueLocalAi.Demo -- --provider ollama --model qwen2.5:1.5b --timeout-ms 5000"
-Write-Host "GGUF via LLamaSharp, CPU only:"
-Write-Host "  dotnet run --project src\PaintQueueLocalAi.Demo -- --provider llamasharp --model-path models\qwen2.5-1.5b-instruct-q4_k_m.gguf --timeout-ms 5000"
+Write-Host "Rules only:"
+Write-Host "  dotnet run --project src\PaintQueueLocalAi.Demo -- --provider null"
+Write-Host "Ollama + Qwen (falls back to the rules if Ollama is down; release timeout stays 200 ms):"
+Write-Host "  dotnet run --project src\PaintQueueLocalAi.Demo -- --provider ollama --model qwen2.5:1.5b"
 Write-Host "Publish for this PC from a connected build machine:"
 Write-Host "  dotnet publish src\PaintQueueLocalAi.Demo\PaintQueueLocalAi.Demo.csproj -c Release -r win-x64 --self-contained true -o publish\win-x64"

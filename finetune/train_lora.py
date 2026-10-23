@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LoRA / QLoRA SFT for the paint-queue advisor.
+"""LoRA SFT for the paint-buffer advisor. QLoRA is optional (--qlora, CUDA only).
 
 The dataset is chat JSONL produced by PaintQueueLocalAi:
   {"messages":[{"role":"system","content":"..."},{"role":"user","content":"..."},{"role":"assistant","content":"{...json...}"}]}
@@ -8,15 +8,16 @@ Dry-run (no torch, safe on the plant PC):
 
   python3 finetune/train_lora.py --dry-run --data finetune/data/paint_queue_advisor.jsonl
 
-CPU LoRA smoke (slow, engineering laptop):
+Primary path, LoRA (no --qlora):
 
   python3 finetune/train_lora.py --device cpu --max-steps 20 --batch-size 1
 
-Modest GPU QLoRA:
+Optional QLoRA on a CUDA GPU:
 
   python3 finetune/train_lora.py --qlora --max-steps 200 --output finetune/output/adapter
 
-Do not train during production on the i5-14500 line PC. Copy the exported GGUF back.
+After training, merge, export GGUF, then `ollama create`. Do not train on the line PC,
+and do not require LLamaSharp to consume the adapter.
 """
 
 from __future__ import annotations
@@ -68,7 +69,7 @@ def load_records(path: Path) -> list[dict]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Fine-tune the paint-queue advisor with LoRA or QLoRA.")
+    parser = argparse.ArgumentParser(description="Fine-tune the paint-buffer advisor. LoRA is the default; --qlora is optional.")
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--model", default="Qwen/Qwen2.5-1.5B-Instruct")

@@ -1,11 +1,11 @@
+﻿using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using PaintQueueLocalAi;
-using PaintQueueLocalAi.LlamaSharp;
 using PaintQueueLocalAi.Local;
+using PaintQueueLocalAi.Simulation;
 
 Console.OutputEncoding = Encoding.UTF8;
-Console.InputEncoding = Encoding.UTF8;
 
 try
 {
@@ -19,187 +19,112 @@ catch (Exception ex) when (ex is ArgumentException or FormatException)
 
 static async Task<int> RunAsync(string[] args)
 {
-    if (args.Any(arg => arg is "--help" or "-h"))
+    var settings = DemoSettings.Load(args);
+    if (settings.Help)
     {
         PrintHelp();
         return 0;
     }
 
-    var options = DemoSettings.Load(args);
-    if (options.ExportDatasetPath is not null)
+    if (settings.ExportDatasetPath is not null)
     {
         AdvisorDatasetWriter.WriteFile(
-            options.ExportDatasetPath,
-            AdvisorDatasetWriter.Serialize(options.DatasetCount, options.DatasetSeed));
-        Console.WriteLine($"已写出训练集 {options.DatasetCount} 条：{options.ExportDatasetPath}");
+            settings.ExportDatasetPath,
+            await AdvisorDatasetWriter.SerializeAsync(settings.DatasetCount, settings.DatasetSeed).ConfigureAwait(false));
+        Console.WriteLine("已写出训练集：" + settings.ExportDatasetPath);
     }
 
-    if (options.ExportOverridesPath is not null)
-    {
-        AdvisorDatasetWriter.WriteFile(options.ExportOverridesPath, AdvisorDatasetWriter.SerializePlantOverrides());
-        Console.WriteLine("已写出现场覆盖样本：" + options.ExportOverridesPath);
-    }
-
-    if (options.ExportModelfilePath is not null)
+    if (settings.ExportOverridesPath is not null)
     {
         AdvisorDatasetWriter.WriteFile(
-            options.ExportModelfilePath,
-            AdvisorDatasetWriter.RenderModelfile(options.ModelfileFrom));
-        Console.WriteLine("已写出 Modelfile：" + options.ExportModelfilePath);
+            settings.ExportOverridesPath,
+            await AdvisorDatasetWriter.SerializePlantOverridesAsync().ConfigureAwait(false));
+        Console.WriteLine("已写出现场覆盖样本：" + settings.ExportOverridesPath);
     }
 
-    if (options.ExportOnly)
+    if (settings.ExportModelfilePath is not null)
+    {
+        AdvisorDatasetWriter.WriteFile(
+            settings.ExportModelfilePath,
+            AdvisorDatasetWriter.RenderModelfile(settings.ModelfileFrom));
+        Console.WriteLine("已写出 Modelfile：" + settings.ExportModelfilePath);
+    }
+
+    if (settings.ExportOnly)
     {
         return 0;
     }
 
-    if (options.SelfCheck)
-    {
-        return await SelfCheckAsync();
-    }
-
-    ILlmAdvisor advisor = CreateAdvisor(options);
-    try
-    {
-        if (options.Warmup && advisor is IAdvisorWarmup warmup)
-        {
-            Console.WriteLine("正在预热本地模型（不占用节拍超时）…");
-            await warmup.WarmUpAsync(CancellationToken.None);
-        }
-
-        if (advisor is ILocalAdvisorStatus status)
-        {
-            Console.WriteLine("模型状态: " + status.Status);
-        }
-
-        var engine = new DispatchEngine(
-            new DispatchOptions
-            {
-                TopK = options.TopK,
-                AdvisorTimeout = TimeSpan.FromMilliseconds(options.TimeoutMs)
-            },
-            advisor);
-        var sample = options.Scenario == "interlock" ? SampleQueues.EmergencyStop() : SampleQueues.MorningShift();
-        var decision = await engine.DispatchAsync(sample.Booth, sample.Jobs);
-        PrintDecision(decision);
-        if (string.Equals(decision.FallbackReason, AdvisorFallbackReason.Timeout, StringComparison.Ordinal))
-        {
-            Console.WriteLine("模型未在节拍内返回。人工查看说明时可加 --timeout-ms 5000，并确认已预热。");
-        }
-
-        return 0;
-    }
-    finally
-    {
-        if (advisor is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-    }
+    var report = await new InMemoryPaintShopSimulator().RunAllAsync().ConfigureAwait(false);
+    Console.WriteLine(report.ToChineseText());
+    await RunAdvisorSampleAsync(settings).ConfigureAwait(false);
+    return report.AllPassed ? 0 : 1;
 }
 
-static ILlmAdvisor CreateAdvisor(DemoSettings options) => options.Provider switch
+static async Task RunAdvisorSampleAsync(DemoSettings settings)
 {
-    "null" => NullLlmAdvisor.Instance,
-    "ollama" => new OllamaLoopbackAdvisor(new OllamaAdvisorOptions
+    Console.WriteLine();
+    Console.WriteLine("本地顾问（Ollama / Qwen）");
+    if (settings.Provider == "null")
     {
-        BaseUrl = options.BaseUrl,
-        Model = options.OllamaModel
-    }),
-    "llamasharp" => new LlamaSharpAdvisor(new LlamaSharpAdvisorOptions
-    {
-        ModelPath = options.ModelPath,
-        Threads = options.Threads,
-        GpuLayerCount = options.GpuLayerCount
-    }),
-    _ => throw new ArgumentException("未知 provider。可用值：null、ollama、llamasharp。")
-};
-
-static async Task<int> SelfCheckAsync()
-{
-    var engine = new DispatchEngine(new DispatchOptions(), NullLlmAdvisor.Instance);
-    var sample = SampleQueues.MorningShift();
-    var decision = await engine.DispatchAsync(sample.Booth, sample.Jobs);
-    var blocked = await engine.DispatchAsync(SampleQueues.EmergencyStop().Booth, sample.Jobs);
-    if (decision.SelectedJobId != SampleQueues.MorningWinnerId || decision.AdvisorApplied)
-    {
-        Console.Error.WriteLine("自检失败：无模型时规则结果不符合预期。");
-        return 1;
+        Console.WriteLine("已跳过。四段仿真仍使用规则和 NullLlmAdvisor。");
+        return;
     }
 
-    if (!blocked.Blocked || blocked.AdvisorInvoked || blocked.BlockingInterlock != InterlockKind.EmergencyStop)
+    if (settings.Provider == "llamasharp")
     {
-        Console.Error.WriteLine("自检失败：急停仍询问了模型或没有阻断。");
-        return 1;
+        Console.WriteLine("本演示走 Ollama。GGUF / LLamaSharp 是备选宿主，见 src/PaintQueueLocalAi.LlamaSharp。");
+        return;
     }
 
-    Console.WriteLine("自检通过：无模型时规则选中 W-URG，急停不询问模型。");
-    return 0;
-}
-
-static void PrintDecision(DispatchDecision decision)
-{
-    Console.WriteLine(decision.Blocked
-        ? "联锁: " + InterlockText.ToChinese(decision.BlockingInterlock!.Value)
-        : "选中: " + (decision.SelectedJobId ?? "-"));
-    Console.WriteLine("规则顺序: " + FormatOrder(decision.RuleOrder));
-    Console.WriteLine("最终顺序: " + FormatOrder(decision.FinalOrder));
-    Console.WriteLine("顾问调用: " + (decision.AdvisorInvoked ? "是" : "否"));
-    Console.WriteLine("顾问采用: " + (decision.AdvisorApplied ? "是" : "否"));
-    Console.WriteLine("回退: " + (decision.FallbackReason ?? "-"));
-    Console.WriteLine("界面: " + decision.HmiText);
-    if (decision.Excluded.Count > 0)
+    Console.WriteLine("模型名来自 ollama list，当前为 " + settings.Model + "。");
+    Console.WriteLine("放行节拍的 AdvisorTimeout 仍是 200 ms。下面这次演示用 " + settings.TimeoutMs.ToString(CultureInfo.InvariantCulture) + " ms，方便看到回复。");
+    using var advisor = new OllamaLoopbackAdvisor(new OllamaAdvisorOptions
     {
-        Console.WriteLine("排除: " + string.Join("，", decision.Excluded.Select(item => item.JobId + " " + item.Reason)));
-    }
-}
-
-static string FormatOrder(IReadOnlyList<RankedCandidate> candidates)
-{
-    if (candidates.Count == 0)
+        BaseUrl = settings.BaseUrl,
+        Model = settings.Model
+    });
+    if (settings.Warmup)
     {
-        return "-";
+        Console.WriteLine("正在预热（不占用四段仿真）…");
+        await advisor.WarmUpAsync(CancellationToken.None).ConfigureAwait(false);
+        Console.WriteLine("模型状态: " + advisor.Status);
     }
 
-    return string.Join(" > ", candidates.Select(item => item.CandidateId + "(" + item.Score + ")"));
+    var policy = DispatchPolicy.Default with { AdvisorTimeout = TimeSpan.FromMilliseconds(settings.TimeoutMs) };
+    var engine = new DispatchEngine(policy, advisor);
+    var decision = await engine.EvaluateAsync(SampleSnapshots.MinSequence()).ConfigureAwait(false);
+    Console.WriteLine("顾问结果: " + decision.AdvisorOutcome);
+    Console.WriteLine("放行车辆: " + (decision.Selected?.VehicleId ?? "-"));
+    Console.WriteLine(decision.FellBackToRules
+        ? "Ollama 不可用或输出无效，已保持规则顺序。"
+        : "已采用本机顾问的回复。");
+    Console.WriteLine(decision.Explanation);
 }
 
 static void PrintHelp()
 {
     Console.WriteLine("""
-        PaintQueueLocalAi 演示
+        四段规则仿真始终使用 NullLlmAdvisor。随后按 appsettings 调用本机 Ollama。
 
-          --provider null|ollama|llamasharp
-          --timeout-ms 200          节拍内重排预算，默认 200
-          --top-k 5
+          --provider ollama|null|llamasharp
+          --model qwen2.5:1.5b      以 ollama list 显示的名字为准
           --base-url http://127.0.0.1:11434
-          --model qwen2.5:1.5b      Ollama 模型名
-          --model-path models/qwen2.5-1.5b-instruct-q4_k_m.gguf
-          --threads 6
-          --scenario sample|interlock
-          --warmup / --no-warmup
-          --self-check               无模型自检
+          --timeout-ms 8000         只影响演示里的顾问调用
+          --no-warmup
           --export-dataset <path>
           --export-overrides <path>
           --export-modelfile <path> --modelfile-from <gguf>
-          --dataset-count 48 --dataset-seed 20261023
-
-        没有模型文件时调度仍然按规则完成。顾问地址只允许本机回环。
         """);
 }
 
 internal sealed record DemoSettings(
+    bool Help,
     string Provider,
-    int TimeoutMs,
-    int TopK,
-    bool Warmup,
+    string Model,
     string BaseUrl,
-    string OllamaModel,
-    string ModelPath,
-    int Threads,
-    int GpuLayerCount,
-    string Scenario,
-    bool SelfCheck,
+    int TimeoutMs,
+    bool Warmup,
     string? ExportDatasetPath,
     string? ExportOverridesPath,
     string? ExportModelfilePath,
@@ -211,44 +136,28 @@ internal sealed record DemoSettings(
 
     public static DemoSettings Load(string[] args)
     {
-        var provider = "null";
-        var timeoutMs = AdvisorLimits.DefaultTimeoutMilliseconds;
-        var topK = AdvisorLimits.DefaultTopK;
-        var warmup = true;
-        var baseUrl = "http://127.0.0.1:11434";
+        var provider = "ollama";
         var model = "qwen2.5:1.5b";
-        var modelPath = "models/qwen2.5-1.5b-instruct-q4_k_m.gguf";
-        var threads = 6;
-        var gpu = 0;
-        var scenario = "sample";
-        var selfCheck = false;
+        var baseUrl = "http://127.0.0.1:11434";
+        var timeoutMs = 8000;
+        var warmup = true;
+        var help = false;
         string? exportDataset = null;
         string? exportOverrides = null;
         string? exportModelfile = null;
-        var modelfileFrom = "paint-advisor-q4_k_m.gguf";
+        var modelfileFrom = "./paint-advisor-q4_k_m.gguf";
         var datasetCount = DatasetDefaults.Count;
         var datasetSeed = DatasetDefaults.Seed;
         var file = ResolveAppSettings();
         if (file is not null)
         {
-            using var doc = JsonDocument.Parse(File.ReadAllText(file));
-            var root = doc.RootElement;
+            using var document = JsonDocument.Parse(File.ReadAllText(file));
+            var root = document.RootElement;
             provider = ReadString(root, "provider") ?? provider;
+            model = ReadString(root, "model") ?? model;
+            baseUrl = ReadString(root, "baseUrl") ?? baseUrl;
             timeoutMs = ReadInt(root, "timeoutMs") ?? timeoutMs;
-            topK = ReadInt(root, "topK") ?? topK;
             warmup = ReadBool(root, "warmup") ?? warmup;
-            threads = ReadInt(root, "threads") ?? threads;
-            if (root.TryGetProperty("ollama", out var ollama))
-            {
-                baseUrl = ReadString(ollama, "baseUrl") ?? baseUrl;
-                model = ReadString(ollama, "model") ?? model;
-            }
-
-            if (root.TryGetProperty("llamaSharp", out var llama))
-            {
-                modelPath = ReadString(llama, "modelPath") ?? modelPath;
-                gpu = ReadInt(llama, "gpuLayerCount") ?? gpu;
-            }
         }
 
         for (var i = 0; i < args.Length; i++)
@@ -265,38 +174,27 @@ internal sealed record DemoSettings(
 
             switch (args[i])
             {
+                case "--help":
+                case "-h":
+                    help = true;
+                    break;
                 case "--provider":
                     provider = Next();
-                    break;
-                case "--timeout-ms":
-                    timeoutMs = int.Parse(Next(), System.Globalization.CultureInfo.InvariantCulture);
-                    break;
-                case "--top-k":
-                    topK = int.Parse(Next(), System.Globalization.CultureInfo.InvariantCulture);
-                    break;
-                case "--base-url":
-                    baseUrl = Next();
                     break;
                 case "--model":
                     model = Next();
                     break;
-                case "--model-path":
-                    modelPath = Next();
+                case "--base-url":
+                    baseUrl = Next();
                     break;
-                case "--threads":
-                    threads = int.Parse(Next(), System.Globalization.CultureInfo.InvariantCulture);
-                    break;
-                case "--scenario":
-                    scenario = Next();
+                case "--timeout-ms":
+                    timeoutMs = int.Parse(Next(), CultureInfo.InvariantCulture);
                     break;
                 case "--warmup":
                     warmup = true;
                     break;
                 case "--no-warmup":
                     warmup = false;
-                    break;
-                case "--self-check":
-                    selfCheck = true;
                     break;
                 case "--export-dataset":
                     exportDataset = Next();
@@ -311,38 +209,28 @@ internal sealed record DemoSettings(
                     modelfileFrom = Next();
                     break;
                 case "--dataset-count":
-                    datasetCount = int.Parse(Next(), System.Globalization.CultureInfo.InvariantCulture);
+                    datasetCount = int.Parse(Next(), CultureInfo.InvariantCulture);
                     break;
                 case "--dataset-seed":
-                    datasetSeed = int.Parse(Next(), System.Globalization.CultureInfo.InvariantCulture);
+                    datasetSeed = int.Parse(Next(), CultureInfo.InvariantCulture);
                     break;
                 default:
                     throw new ArgumentException("无法识别的参数：" + args[i]);
             }
         }
 
-        if (scenario is not ("sample" or "interlock"))
+        if (provider is not ("ollama" or "null" or "llamasharp"))
         {
-            throw new ArgumentException("scenario 只能是 sample 或 interlock。");
-        }
-
-        if (provider is not ("null" or "ollama" or "llamasharp"))
-        {
-            throw new ArgumentException("provider 只能是 null、ollama 或 llamasharp。");
+            throw new ArgumentException("provider 只能是 ollama、null 或 llamasharp。");
         }
 
         return new DemoSettings(
+            help,
             provider,
-            timeoutMs,
-            topK,
-            warmup,
-            baseUrl,
             model,
-            modelPath,
-            threads,
-            gpu,
-            scenario,
-            selfCheck,
+            baseUrl,
+            timeoutMs,
+            warmup,
             exportDataset,
             exportOverrides,
             exportModelfile,

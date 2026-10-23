@@ -1,14 +1,21 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <RootNamespace>PaintQueueLocalAi.Demo</RootNamespace>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\PaintQueueLocalAi\PaintQueueLocalAi.csproj" />
     <ProjectReference Include="..\PaintQueueLocalAi.Local\PaintQueueLocalAi.Local.csproj" />
-    <ProjectReference Include="..\PaintQueueLocalAi.LlamaSharp\PaintQueueLocalAi.LlamaSharp.csproj" />
   </ItemGroup>
+
   <ItemGroup>
     <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
 </Project>

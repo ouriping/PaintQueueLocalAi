@@ -1,6 +1,24 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
     <RootNamespace>PaintQueueLocalAi</RootNamespace>
-    <Description>涂装队列规则调度与本地顾问契约。不引用推理运行时，运行时不下载模型。</Description>
+    <AssemblyName>PaintQueueLocalAi</AssemblyName>
+    <Version>1.0.0</Version>
+    <Authors>PaintQueueLocalAi contributors</Authors>
+    <Description>Offline, rules-first dispatch for automotive paint-shop buffer queues. An optional local LLM may re-rank or explain; the deterministic engine stays the source of truth.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
 </Project>

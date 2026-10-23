@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Intentionally download a GGUF. The dispatch path never calls this.
+# Intentionally download a GGUF. Skip this when `ollama list` already shows Qwen.
+# The dispatch path never calls this.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

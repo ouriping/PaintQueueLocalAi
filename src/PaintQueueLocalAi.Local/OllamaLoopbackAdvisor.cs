@@ -141,19 +141,23 @@ public sealed class OllamaLoopbackAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalA
         }
     }
 
-    public async ValueTask<AdvisorSuggestion?> AdviseAsync(AdvisorContext context, CancellationToken cancellationToken)
+    public async Task<LlmAdvice?> AdviseAsync(LlmAdviceRequest request, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(context);
-        var user = AdvisorPrompt.BuildUser(context.Booth, context.TopCandidates);
-        var content = await ChatAsync(user, _options.MaxTokens, cancellationToken).ConfigureAwait(false);
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        var content = await ChatAsync(AdvisorPrompt.BuildUser(request), _options.MaxTokens, cancellationToken).ConfigureAwait(false);
         var parsed = AdvisorResponseParser.Parse(content);
         if (!parsed.Success)
         {
-            throw new FormatException(parsed.Error);
+            throw new FormatException(parsed.Error ?? "invalid");
         }
 
         Status = "就绪";
-        return new AdvisorSuggestion(parsed.Order, parsed.Explanation);
+        return new LlmAdvice
+        {
+            ReorderedCandidateIds = parsed.Order,
+            Explanation = parsed.Explanation
+        };
     }
 
     public void Dispose()

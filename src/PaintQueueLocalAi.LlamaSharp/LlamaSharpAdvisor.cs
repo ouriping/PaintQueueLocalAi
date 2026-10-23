@@ -3,6 +3,7 @@ using LLama;
 using LLama.Common;
 using LLama.Sampling;
 using PaintQueueLocalAi;
+using PaintQueueLocalAi.Local;
 
 namespace PaintQueueLocalAi.LlamaSharp;
 
@@ -85,9 +86,10 @@ public sealed class LlamaSharpAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalAdvis
         }
     }
 
-    public async ValueTask<AdvisorSuggestion?> AdviseAsync(AdvisorContext context, CancellationToken cancellationToken)
+    public async Task<LlmAdvice?> AdviseAsync(LlmAdviceRequest request, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
         if (!File.Exists(_options.ModelPath))
         {
             Status = "模型文件不存在";
@@ -109,17 +111,20 @@ public sealed class LlamaSharpAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalAdvis
 
         try
         {
-            var user = AdvisorPrompt.BuildUser(context.Booth, context.TopCandidates);
-            var prompt = AdvisorPrompt.BuildRawPrompt(AdvisorPrompt.SystemPrompt, user);
+            var prompt = AdvisorPrompt.BuildRawPrompt(AdvisorPrompt.SystemPrompt, AdvisorPrompt.BuildUser(request));
             var text = await _session.CompleteAsync(prompt, cancellationToken).ConfigureAwait(false);
             var parsed = AdvisorResponseParser.Parse(text);
             if (!parsed.Success)
             {
-                throw new FormatException(parsed.Error);
+                throw new FormatException(parsed.Error ?? "invalid");
             }
 
             Status = "就绪";
-            return new AdvisorSuggestion(parsed.Order, parsed.Explanation);
+            return new LlmAdvice
+            {
+                ReorderedCandidateIds = parsed.Order,
+                Explanation = parsed.Explanation
+            };
         }
         finally
         {

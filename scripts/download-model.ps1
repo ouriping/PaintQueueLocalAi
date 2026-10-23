@@ -1,4 +1,5 @@
-# Intentionally download a GGUF. The dispatch path never calls this.
+# Intentionally download a GGUF. Skip this when `ollama list` already shows Qwen.
+# The dispatch path never calls this.
 # Windows PowerShell 5.1 and PowerShell 7. ASCII only.
 param(
     [ValidateSet("1.5b", "3b", "phi3")]
