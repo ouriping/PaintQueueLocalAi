@@ -28,10 +28,10 @@ public class LocalAdvisorTests
     }
 
     [Fact]
-    public void OllamaOptions_DefaultToQwen15B()
+    public void OllamaOptions_DefaultToQwen05B()
     {
         var options = new OllamaAdvisorOptions();
-        Assert.Equal("qwen2.5:1.5b", options.Model);
+        Assert.Equal("qwen2.5:0.5b", options.Model);
         Assert.Equal("http://127.0.0.1:11434", options.BaseUrl);
     }
 
@@ -46,7 +46,7 @@ public class LocalAdvisorTests
         Assert.NotNull(advice);
         Assert.Equal(context.TopCandidates[0].CandidateId, advice!.ReorderedCandidateIds![0]);
         Assert.Equal(new Uri("http://127.0.0.1:11434/api/chat"), handler.LastUri);
-        Assert.Contains("\"model\":\"qwen2.5:1.5b\"", handler.Body, StringComparison.Ordinal);
+        Assert.Contains("\"model\":\"qwen2.5:0.5b\"", handler.Body, StringComparison.Ordinal);
         Assert.Contains(context.TopCandidates[0].CandidateId, handler.Body, StringComparison.Ordinal);
         Assert.DoesNotContain("B-0001", handler.Body, StringComparison.Ordinal);
     }
@@ -61,6 +61,27 @@ public class LocalAdvisorTests
         Assert.True(decision.FellBackToRules);
         Assert.Equal("B-0012", decision.Selected!.VehicleId);
         Assert.Equal(DispatchReason.PolicySelection, decision.Reason);
+    }
+
+    [Fact]
+    public async Task OllamaMissingModel_Http404_KeepsRuleWinnerAndNamesTheModel()
+    {
+        var handler = new RecordingHandler("{\"error\":\"model not found\"}", HttpStatusCode.NotFound);
+        using var advisor = new OllamaLoopbackAdvisor(handler: handler);
+        await advisor.WarmUpAsync(CancellationToken.None);
+        Assert.Contains("404", advisor.Status, StringComparison.Ordinal);
+        Assert.Contains("模型未找到", advisor.Status, StringComparison.Ordinal);
+
+        var decision = await new DispatchEngine(advisor: advisor).EvaluateAsync(SampleSnapshots.MinSequence());
+        Assert.Equal(AdvisorOutcome.Faulted, decision.AdvisorOutcome);
+        Assert.True(decision.FellBackToRules);
+        Assert.Equal("B-0012", decision.Selected!.VehicleId);
+        Assert.Equal(DispatchReason.PolicySelection, decision.Reason);
+        Assert.Contains("HTTP 404", decision.Explanation, StringComparison.Ordinal);
+        Assert.Contains("ollama list", decision.Explanation, StringComparison.Ordinal);
+        Assert.Contains("--model", decision.Explanation, StringComparison.Ordinal);
+        Assert.Contains("已回退到规则排序", decision.Explanation, StringComparison.Ordinal);
+        Assert.Contains("qwen2.5:0.5b", decision.AdvisorExplanation, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -105,6 +126,93 @@ public class LocalAdvisorTests
     public void Parser_RejectsGarbage(string text)
     {
         Assert.False(AdvisorResponseParser.Parse(text).Success);
+    }
+
+    [Theory]
+    [InlineData("结果如下：\n```json\n{\"ranking\":[\"B-0012\",\"B-0018\"],\"reason\":\"序号\"}\n```\n以上。")]
+    [InlineData("{'order':['buffer:BUF-02:B-0012','buffer:BUF-03:B-0018'],'explanation':'ok'}")]
+    [InlineData("{\"ids\":\"buffer:BUF-02:B-0012, buffer:BUF-03:B-0018\",\"说明\":\"保持\"}")]
+    [InlineData("{\"order\":[{\"candidateId\":\"buffer：BUF-02：B-0012\"},\"buffer:BUF-03\"],\"explanation\":\"半截\"}")]
+    public void Parser_RecoversTinyModelShapesWhenTheIdIsUnique(string text)
+    {
+        var parsed = AdvisorResponseParser.Parse(text, SampleCandidateIds);
+        Assert.True(parsed.Success, parsed.Error);
+        Assert.Equal("buffer:BUF-02:B-0012", parsed.Order[0]);
+        Assert.Equal("buffer:BUF-03:B-0018", parsed.Order[1]);
+    }
+
+    [Fact]
+    public void Parser_CollapsesDuplicateIds()
+    {
+        var parsed = AdvisorResponseParser.Parse(
+            "{\"order\":[\"B-0012\",\"B-0012\",\"buffer:BUF-03:B-0018\"]}",
+            SampleCandidateIds);
+        Assert.True(parsed.Success, parsed.Error);
+        Assert.Equal(new[] { "buffer:BUF-02:B-0012", "buffer:BUF-03:B-0018" }, parsed.Order);
+    }
+
+    [Fact]
+    public void Parser_RejectsInventedIds()
+    {
+        var parsed = AdvisorResponseParser.Parse(
+            "{\"order\":[\"buffer:BUF-99:B-9999\"],\"explanation\":\"不存在\"}",
+            SampleCandidateIds);
+        Assert.False(parsed.Success);
+        Assert.Equal("unknown-id", parsed.Error);
+        Assert.Contains("buffer:BUF-99:B-9999", parsed.Order);
+        var advice = AdvisorResponseParser.ToAdvice(parsed);
+        Assert.Equal("buffer:BUF-99:B-9999", advice.ReorderedCandidateIds![0]);
+    }
+
+    [Fact]
+    public void Parser_RejectsAmbiguousVehicleIds()
+    {
+        var allowed = new[] { "buffer:BUF-01:B-0012", "buffer:BUF-02:B-0012" };
+        var parsed = AdvisorResponseParser.Parse("{\"order\":[\"B-0012\"]}", allowed);
+        Assert.False(parsed.Success);
+        Assert.Equal("ambiguous-id", parsed.Error);
+    }
+
+    [Fact]
+    public async Task Prompt_UsesRealCandidateIdsAndNoPlaceholder()
+    {
+        Assert.DoesNotContain("\"候选编号\"", AdvisorPrompt.SystemPrompt, StringComparison.Ordinal);
+        var context = await AdviceContextAsync();
+        var user = AdvisorPrompt.BuildUser(context);
+        Assert.Contains("- " + context.TopCandidates[0].CandidateId + " ", user, StringComparison.Ordinal);
+        Assert.Contains("\"order\":[\"" + context.TopCandidates[0].CandidateId + "\"", user, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"候选编号\"", user, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task OllamaVehicleIds_MapOntoCandidatesInsteadOfInvalidReorder()
+    {
+        var context = await AdviceContextAsync();
+        var vehicles = context.TopCandidates.Select(candidate => candidate.VehicleId).Reverse().ToArray();
+        var json = "说明:\n```json\n{\"ranking\":["
+            + string.Join(",", vehicles.Select(id => "\"" + id + "\""))
+            + "],\"reason\":\"先看序号\"}\n```";
+        var handler = new RecordingHandler("{\"message\":{\"content\":" + JsonEscape(json) + "}}");
+        using var advisor = new OllamaLoopbackAdvisor(handler: handler);
+        var decision = await new DispatchEngine(advisor: advisor).EvaluateAsync(SampleSnapshots.MinSequence());
+        Assert.Equal(AdvisorOutcome.Applied, decision.AdvisorOutcome);
+        Assert.False(decision.FellBackToRules);
+        Assert.Equal(vehicles[0], decision.Selected!.VehicleId);
+        Assert.Contains(vehicles[0], advisor.LastOutput, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task OllamaInventedId_KeepsRuleWinnerAndStoresRawOutput()
+    {
+        var json = "{\"order\":[\"buffer:BUF-99:B-9999\"],\"explanation\":\"不存在\"}";
+        var handler = new RecordingHandler("{\"message\":{\"content\":" + JsonEscape(json) + "}}");
+        using var advisor = new OllamaLoopbackAdvisor(handler: handler);
+        var decision = await new DispatchEngine(advisor: advisor).EvaluateAsync(SampleSnapshots.MinSequence());
+        Assert.Equal(AdvisorOutcome.InvalidReorder, decision.AdvisorOutcome);
+        Assert.True(decision.FellBackToRules);
+        Assert.Equal("B-0012", decision.Selected!.VehicleId);
+        Assert.Equal(DispatchReason.PolicySelection, decision.Reason);
+        Assert.Contains("B-9999", advisor.LastOutput, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -220,6 +328,13 @@ public class LocalAdvisorTests
 
         throw new InvalidOperationException("找不到仓库根目录。");
     }
+
+    private static readonly string[] SampleCandidateIds =
+    {
+        "buffer:BUF-02:B-0012",
+        "buffer:BUF-03:B-0018",
+        "fast-lane-a:B-0020"
+    };
 
     private static string JsonEscape(string value) => System.Text.Json.JsonSerializer.Serialize(value);
 

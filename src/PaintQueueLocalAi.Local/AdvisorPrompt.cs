@@ -7,7 +7,7 @@ namespace PaintQueueLocalAi.Local;
 public static class AdvisorPrompt
 {
     public const string SystemPrompt =
-        "你是涂装缓存放行顾问。只能重排用户给出的候选编号，不能新增车辆，也不能建议解除联锁。只输出一行 JSON：{\"order\":[\"候选编号\"],\"explanation\":\"不超过40字\"}。若理由不足，保持输入顺序。";
+        "只输出一行 JSON，不要 Markdown，不要前后说明。键只有 order 和 explanation。order 是字符串数组，每项必须原样复制用户列出的候选编号，禁止新增，禁止只写车号。";
 
     public static string BuildUser(LlmAdviceRequest request)
     {
@@ -21,23 +21,43 @@ public static class AdvisorPrompt
         ArgumentNullException.ThrowIfNull(displayOrder);
         var builder = new StringBuilder();
         builder.Append(request.RuleSummary).Append('\n');
-        builder.Append("候选(只能重排这些编号):\n");
+        builder.Append("候选编号:\n");
         foreach (var candidate in displayOrder)
         {
             builder.Append("- ").Append(candidate.CandidateId).Append(' ');
-            builder.Append("车号=").Append(candidate.VehicleId);
-            builder.Append(" 序号=").Append(candidate.SequenceNumber.ToString(CultureInfo.InvariantCulture));
-            builder.Append(" 来源=").Append(candidate.Origin == CandidateOrigin.FastLaneA
-                ? "A口快车道"
-                : "缓存" + candidate.QueueId);
-            builder.Append(" 颜色=").Append(string.IsNullOrEmpty(candidate.ColorCode) ? "-" : candidate.ColorCode);
-            builder.Append(" 层级=").Append(candidate.PriorityTier.ToString(CultureInfo.InvariantCulture));
-            builder.Append(" 填充=").Append(candidate.FillRatio.ToString("0.##", CultureInfo.InvariantCulture));
+            builder.Append("序号=").Append(candidate.SequenceNumber.ToString(CultureInfo.InvariantCulture));
             builder.Append(" 得分=").Append(candidate.Score.ToString("0.##", CultureInfo.InvariantCulture));
+            builder.Append(" 层级=").Append(candidate.PriorityTier.ToString(CultureInfo.InvariantCulture));
             builder.Append('\n');
         }
 
+        if (request.TopCandidates.Count > 0)
+        {
+            var explanation = Explain(request.TopCandidates[0], request.Dispatch.IsUrgent);
+            builder.Append("只输出一行 JSON。order 只能重排上面的编号。保持规则时原样输出：");
+            builder.Append(ExampleJson(request.TopCandidates, explanation));
+        }
+
         return builder.ToString().TrimEnd();
+    }
+
+    private static string ExampleJson(IReadOnlyList<CandidateScore> ranked, string explanation)
+    {
+        var builder = new StringBuilder();
+        builder.Append("{\"order\":[");
+        for (var i = 0; i < ranked.Count; i++)
+        {
+            if (i > 0)
+            {
+                builder.Append(',');
+            }
+
+            builder.Append('"').Append(ranked[i].CandidateId).Append('"');
+        }
+
+        var safeExplanation = explanation.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+        builder.Append("],\"explanation\":\"").Append(safeExplanation).Append("\"}");
+        return builder.ToString();
     }
 
     public static string BuildRawPrompt(string system, string user)

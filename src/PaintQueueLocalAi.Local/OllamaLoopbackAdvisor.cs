@@ -64,9 +64,9 @@ public sealed record OllamaAdvisorOptions
 {
     public string BaseUrl { get; init; } = "http://127.0.0.1:11434";
 
-    public string Model { get; init; } = "qwen2.5:1.5b";
+    public string Model { get; init; } = "qwen2.5:0.5b";
 
-    public int MaxTokens { get; init; } = 80;
+    public int MaxTokens { get; init; } = 128;
 
     public int NumCtx { get; init; } = 2048;
 
@@ -122,6 +122,9 @@ public sealed class OllamaLoopbackAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalA
 
     public string Status { get; private set; }
 
+    /// <summary>Last model text from <see cref="AdviseAsync"/>. Truncated. Null when the call never returned a body.</summary>
+    public string? LastOutput { get; private set; }
+
     public async Task WarmUpAsync(CancellationToken cancellationToken)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -137,7 +140,8 @@ public sealed class OllamaLoopbackAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalA
         }
         catch (Exception ex)
         {
-            Status = "预热失败: " + ex.GetType().Name;
+            var detail = string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message.Trim();
+            Status = "预热失败: " + detail;
         }
     }
 
@@ -145,19 +149,13 @@ public sealed class OllamaLoopbackAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalA
     {
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
+        LastOutput = null;
         var content = await ChatAsync(AdvisorPrompt.BuildUser(request), _options.MaxTokens, cancellationToken).ConfigureAwait(false);
-        var parsed = AdvisorResponseParser.Parse(content);
-        if (!parsed.Success)
-        {
-            throw new FormatException(parsed.Error ?? "invalid");
-        }
-
+        LastOutput = content.Length <= 2000 ? content : content[..2000];
+        var allowed = request.TopCandidates.Select(candidate => candidate.CandidateId).ToArray();
+        var advice = AdvisorResponseParser.ToAdvice(AdvisorResponseParser.Parse(content, allowed));
         Status = "就绪";
-        return new LlmAdvice
-        {
-            ReorderedCandidateIds = parsed.Order,
-            Explanation = parsed.Explanation
-        };
+        return advice;
     }
 
     public void Dispose()
@@ -204,6 +202,12 @@ public sealed class OllamaLoopbackAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalA
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
+            if (status == (int)HttpStatusCode.NotFound)
+            {
+                throw new HttpRequestException(
+                    "Ollama HTTP 404：模型未找到（请求的模型是 " + _options.Model + "）。");
+            }
+
             throw new HttpRequestException("Ollama HTTP " + status);
         }
 
