@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7A807F7C-D74F-4AAA-BC31-DEF1C8776D31}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaintQueueLocalAi", "src\PaintQueueLocalAi\PaintQueueLocalAi.csproj", "{E483EA75-0C01-4232-821F-2DF2D569FD88}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaintQueueLocalAi.Local", "src\PaintQueueLocalAi.Local\PaintQueueLocalAi.Local.csproj", "{B08FB2C4-1366-4EF1-90E2-EAA3F94D55D6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaintQueueLocalAi.LlamaSharp", "src\PaintQueueLocalAi.LlamaSharp\PaintQueueLocalAi.LlamaSharp.csproj", "{0DB60EAC-E893-4D2A-9494-36FD8D2FB9D7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaintQueueLocalAi.Demo", "src\PaintQueueLocalAi.Demo\PaintQueueLocalAi.Demo.csproj", "{D615D84A-CAEC-4244-BA70-4466BA25453A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{EEE17206-2292-48CC-B1BF-B8C1536A7F13}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaintQueueLocalAi.Tests", "tests\PaintQueueLocalAi.Tests\PaintQueueLocalAi.Tests.csproj", "{8AB6EAFC-8CBB-4A04-9BCE-59CC8379A114}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E483EA75-0C01-4232-821F-2DF2D569FD88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E483EA75-0C01-4232-821F-2DF2D569FD88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E483EA75-0C01-4232-821F-2DF2D569FD88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E483EA75-0C01-4232-821F-2DF2D569FD88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B08FB2C4-1366-4EF1-90E2-EAA3F94D55D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B08FB2C4-1366-4EF1-90E2-EAA3F94D55D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B08FB2C4-1366-4EF1-90E2-EAA3F94D55D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B08FB2C4-1366-4EF1-90E2-EAA3F94D55D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DB60EAC-E893-4D2A-9494-36FD8D2FB9D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DB60EAC-E893-4D2A-9494-36FD8D2FB9D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DB60EAC-E893-4D2A-9494-36FD8D2FB9D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DB60EAC-E893-4D2A-9494-36FD8D2FB9D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D615D84A-CAEC-4244-BA70-4466BA25453A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D615D84A-CAEC-4244-BA70-4466BA25453A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D615D84A-CAEC-4244-BA70-4466BA25453A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D615D84A-CAEC-4244-BA70-4466BA25453A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8AB6EAFC-8CBB-4A04-9BCE-59CC8379A114}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8AB6EAFC-8CBB-4A04-9BCE-59CC8379A114}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8AB6EAFC-8CBB-4A04-9BCE-59CC8379A114}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8AB6EAFC-8CBB-4A04-9BCE-59CC8379A114}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E483EA75-0C01-4232-821F-2DF2D569FD88} = {7A807F7C-D74F-4AAA-BC31-DEF1C8776D31}
+		{B08FB2C4-1366-4EF1-90E2-EAA3F94D55D6} = {7A807F7C-D74F-4AAA-BC31-DEF1C8776D31}
+		{0DB60EAC-E893-4D2A-9494-36FD8D2FB9D7} = {7A807F7C-D74F-4AAA-BC31-DEF1C8776D31}
+		{D615D84A-CAEC-4244-BA70-4466BA25453A} = {7A807F7C-D74F-4AAA-BC31-DEF1C8776D31}
+		{8AB6EAFC-8CBB-4A04-9BCE-59CC8379A114} = {EEE17206-2292-48CC-B1BF-B8C1536A7F13}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>PaintQueueLocalAi.LlamaSharp</RootNamespace>
+    <Description>GGUF 本地顾问（LLamaSharp CPU 后端）。不进入核心库。</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PaintQueueLocalAi\PaintQueueLocalAi.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="LLamaSharp" Version="0.24.0" />
+    <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.24.0" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+# Training machine only. The plant PC does not need these packages.
+transformers>=4.45,<5
+peft>=0.13,<1
+accelerate>=1.0,<2
+torch>=2.4
+sentencepiece>=0.2
+protobuf>=5
+# Optional, GPU QLoRA only:
+# bitsandbytes>=0.44

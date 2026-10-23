@@ -1,0 +1,20 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Test
+        run: dotnet test PaintQueueLocalAi.sln -c Release --nologo
+      - name: Validate fine-tune data
+        run: |
+          python3 finetune/train_lora.py --dry-run --data finetune/data/paint_queue_advisor.jsonl
+          python3 finetune/train_lora.py --dry-run --data finetune/data/plant_overrides.sample.jsonl
