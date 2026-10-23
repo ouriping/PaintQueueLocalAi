@@ -135,7 +135,7 @@ public static class AdvisorDatasetWriter
 
         return "FROM " + ggufPath.Replace('\\', '/') + "\n"
             + "PARAMETER temperature 0.1\n"
-            + "PARAMETER num_predict 80\n"
+            + "PARAMETER num_predict 128\n"
             + "PARAMETER num_ctx 2048\n"
             + "PARAMETER stop <|im_end|>\n"
             + "SYSTEM \"\"\"\n"

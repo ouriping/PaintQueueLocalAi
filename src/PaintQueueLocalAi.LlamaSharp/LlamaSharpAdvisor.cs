@@ -15,7 +15,7 @@ public sealed record LlamaSharpAdvisorOptions
 
     public int ContextSize { get; init; } = 2048;
 
-    public int MaxTokens { get; init; } = 80;
+    public int MaxTokens { get; init; } = 128;
 
     /// <summary>目标机只有核显。非 0 会被忽略，实际始终按 CPU 加载。</summary>
     public int GpuLayerCount { get; init; }
@@ -113,18 +113,10 @@ public sealed class LlamaSharpAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalAdvis
         {
             var prompt = AdvisorPrompt.BuildRawPrompt(AdvisorPrompt.SystemPrompt, AdvisorPrompt.BuildUser(request));
             var text = await _session.CompleteAsync(prompt, cancellationToken).ConfigureAwait(false);
-            var parsed = AdvisorResponseParser.Parse(text);
-            if (!parsed.Success)
-            {
-                throw new FormatException(parsed.Error ?? "invalid");
-            }
-
+            var allowed = request.TopCandidates.Select(candidate => candidate.CandidateId).ToArray();
+            var advice = AdvisorResponseParser.ToAdvice(AdvisorResponseParser.Parse(text, allowed));
             Status = "就绪";
-            return new LlmAdvice
-            {
-                ReorderedCandidateIds = parsed.Order,
-                Explanation = parsed.Explanation
-            };
+            return advice;
         }
         finally
         {

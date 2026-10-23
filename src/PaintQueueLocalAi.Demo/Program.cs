@@ -95,11 +95,23 @@ static async Task RunAdvisorSampleAsync(DemoSettings settings)
     var engine = new DispatchEngine(policy, advisor);
     var decision = await engine.EvaluateAsync(SampleSnapshots.MinSequence()).ConfigureAwait(false);
     Console.WriteLine("顾问结果: " + decision.AdvisorOutcome);
+    if ((decision.AdvisorOutcome is AdvisorOutcome.InvalidReorder or AdvisorOutcome.Faulted)
+        && !string.IsNullOrWhiteSpace(advisor.LastOutput))
+    {
+        Console.WriteLine("模型原文: " + OneLine(advisor.LastOutput, 180));
+    }
+
     Console.WriteLine("放行车辆: " + (decision.Selected?.VehicleId ?? "-"));
     Console.WriteLine(decision.FellBackToRules
         ? "Ollama 不可用或输出无效，已保持规则顺序。"
         : "已采用本机顾问的回复。");
     Console.WriteLine(decision.Explanation);
+}
+
+static string OneLine(string text, int max)
+{
+    var flat = text.Replace("\r\n", " ", StringComparison.Ordinal).Replace('\n', ' ').Replace('\r', ' ').Trim();
+    return flat.Length <= max ? flat : flat[..max] + "…";
 }
 
 static void PrintHelp()

@@ -66,7 +66,7 @@ public sealed record OllamaAdvisorOptions
 
     public string Model { get; init; } = "qwen2.5:0.5b";
 
-    public int MaxTokens { get; init; } = 80;
+    public int MaxTokens { get; init; } = 128;
 
     public int NumCtx { get; init; } = 2048;
 
@@ -122,6 +122,9 @@ public sealed class OllamaLoopbackAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalA
 
     public string Status { get; private set; }
 
+    /// <summary>Last model text from <see cref="AdviseAsync"/>. Truncated. Null when the call never returned a body.</summary>
+    public string? LastOutput { get; private set; }
+
     public async Task WarmUpAsync(CancellationToken cancellationToken)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -146,19 +149,13 @@ public sealed class OllamaLoopbackAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalA
     {
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
+        LastOutput = null;
         var content = await ChatAsync(AdvisorPrompt.BuildUser(request), _options.MaxTokens, cancellationToken).ConfigureAwait(false);
-        var parsed = AdvisorResponseParser.Parse(content);
-        if (!parsed.Success)
-        {
-            throw new FormatException(parsed.Error ?? "invalid");
-        }
-
+        LastOutput = content.Length <= 2000 ? content : content[..2000];
+        var allowed = request.TopCandidates.Select(candidate => candidate.CandidateId).ToArray();
+        var advice = AdvisorResponseParser.ToAdvice(AdvisorResponseParser.Parse(content, allowed));
         Status = "就绪";
-        return new LlmAdvice
-        {
-            ReorderedCandidateIds = parsed.Order,
-            Explanation = parsed.Explanation
-        };
+        return advice;
     }
 
     public void Dispose()

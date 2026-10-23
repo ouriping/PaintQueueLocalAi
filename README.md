@@ -139,6 +139,8 @@ dotnet run --project src/PaintQueueLocalAi.Demo -- --provider ollama --model qwe
 
 演示程序先打印四段规则仿真，再对「最小序号」快照问一次本机 Qwen。`src/PaintQueueLocalAi.Demo/appsettings.json` 的默认就是 `provider=ollama`、`model=qwen2.5:0.5b`、`http://127.0.0.1:11434`。只想看四段仿真时加 `--provider null`。
 
+0.5B 常常多写说明、换键名，或把车号 / 半截编号放进 `order`。提示词只要求一行 JSON，并给出用本次候选编号填好的示例。解析会丢掉 Markdown 和前后说明，并在能唯一对上时把车号或半截编号还原成 `CandidateId`。对不上的编号仍然无效，放行保持规则顺序。无效重排或解析失败时，Demo 会打印截断的模型原文。
+
 放行节拍里的 `DispatchPolicy.AdvisorTimeout` 仍是 200 ms。演示里的那一次调用默认放到 8 秒，方便在这台 CPU 上看到回复；产线不要把 8 秒挡在 `CommitReleaseAsync` 前面。
 
 在宿主里接上同一实现：

@@ -31,6 +31,7 @@ dotnet run --project src/PaintQueueLocalAi.Demo -- --provider null \
 约束：
 
 - `order` 只能重排该条 user 里出现的候选编号，不能新增车辆，也不能建议解除联锁。
+- user 末尾有一条用规则顺序填好的 JSON 示例，方便小模型原样复制。现场覆盖样本的 assistant 可以和这条示例不同。
 - `explanation` 1 到 40 个字。
 - 主训练集的 `order` 就是规则分从高到低。约三分之一的 user 把候选打乱，避免模型只会照抄列表顺序。
 - `plant_overrides.sample.jsonl` 有两条现场样本：非紧急时把满库车道放到规则窗口最前；最小序号样本在分差已经明确时保持原顺序。默认训练不要合并它，除非现场确认这条策略。
