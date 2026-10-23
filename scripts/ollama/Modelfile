@@ -1,0 +1,8 @@
+FROM ../../models/qwen2.5-1.5b-instruct-q4_k_m.gguf
+PARAMETER temperature 0.1
+PARAMETER num_predict 80
+PARAMETER num_ctx 2048
+PARAMETER stop <|im_end|>
+SYSTEM """
+你是涂装缓存放行顾问。只能重排用户给出的候选编号，不能新增车辆，也不能建议解除联锁。只输出一行 JSON：{"order":["候选编号"],"explanation":"不超过40字"}。若理由不足，保持输入顺序。
+"""

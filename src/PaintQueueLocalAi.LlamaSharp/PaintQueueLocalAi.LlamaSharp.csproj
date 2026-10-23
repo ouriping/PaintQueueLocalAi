@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <RootNamespace>PaintQueueLocalAi.LlamaSharp</RootNamespace>
+    <Description>备选 GGUF 顾问（LLamaSharp CPU 后端）。默认路径是 Ollama。</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PaintQueueLocalAi\PaintQueueLocalAi.csproj" />
+    <ProjectReference Include="..\PaintQueueLocalAi.Local\PaintQueueLocalAi.Local.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="LLamaSharp" Version="0.24.0" />
+    <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.24.0" />
+  </ItemGroup>
+</Project>

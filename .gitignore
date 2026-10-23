@@ -17,3 +17,13 @@ coverage.*
 *.coverage
 *.coveragexml
 .DS_Store
+
+models/
+*.gguf
+*.onnx
+finetune/output/
+**/__pycache__/
+**/.pytest_cache/
+**/*.pyc
+.venv/
+venv/

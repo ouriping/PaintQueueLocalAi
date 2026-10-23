@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <RootNamespace>PaintQueueLocalAi.Local</RootNamespace>
+    <Description>本机回环 Ollama 顾问。只访问 127.0.0.1 / localhost / ::1。</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PaintQueueLocalAi\PaintQueueLocalAi.csproj" />
+  </ItemGroup>
+</Project>
