@@ -28,10 +28,10 @@ public class LocalAdvisorTests
     }
 
     [Fact]
-    public void OllamaOptions_DefaultToQwen15B()
+    public void OllamaOptions_DefaultToQwen05B()
     {
         var options = new OllamaAdvisorOptions();
-        Assert.Equal("qwen2.5:1.5b", options.Model);
+        Assert.Equal("qwen2.5:0.5b", options.Model);
         Assert.Equal("http://127.0.0.1:11434", options.BaseUrl);
     }
 
@@ -46,7 +46,7 @@ public class LocalAdvisorTests
         Assert.NotNull(advice);
         Assert.Equal(context.TopCandidates[0].CandidateId, advice!.ReorderedCandidateIds![0]);
         Assert.Equal(new Uri("http://127.0.0.1:11434/api/chat"), handler.LastUri);
-        Assert.Contains("\"model\":\"qwen2.5:1.5b\"", handler.Body, StringComparison.Ordinal);
+        Assert.Contains("\"model\":\"qwen2.5:0.5b\"", handler.Body, StringComparison.Ordinal);
         Assert.Contains(context.TopCandidates[0].CandidateId, handler.Body, StringComparison.Ordinal);
         Assert.DoesNotContain("B-0001", handler.Body, StringComparison.Ordinal);
     }
@@ -61,6 +61,27 @@ public class LocalAdvisorTests
         Assert.True(decision.FellBackToRules);
         Assert.Equal("B-0012", decision.Selected!.VehicleId);
         Assert.Equal(DispatchReason.PolicySelection, decision.Reason);
+    }
+
+    [Fact]
+    public async Task OllamaMissingModel_Http404_KeepsRuleWinnerAndNamesTheModel()
+    {
+        var handler = new RecordingHandler("{\"error\":\"model not found\"}", HttpStatusCode.NotFound);
+        using var advisor = new OllamaLoopbackAdvisor(handler: handler);
+        await advisor.WarmUpAsync(CancellationToken.None);
+        Assert.Contains("404", advisor.Status, StringComparison.Ordinal);
+        Assert.Contains("模型未找到", advisor.Status, StringComparison.Ordinal);
+
+        var decision = await new DispatchEngine(advisor: advisor).EvaluateAsync(SampleSnapshots.MinSequence());
+        Assert.Equal(AdvisorOutcome.Faulted, decision.AdvisorOutcome);
+        Assert.True(decision.FellBackToRules);
+        Assert.Equal("B-0012", decision.Selected!.VehicleId);
+        Assert.Equal(DispatchReason.PolicySelection, decision.Reason);
+        Assert.Contains("HTTP 404", decision.Explanation, StringComparison.Ordinal);
+        Assert.Contains("ollama list", decision.Explanation, StringComparison.Ordinal);
+        Assert.Contains("--model", decision.Explanation, StringComparison.Ordinal);
+        Assert.Contains("已回退到规则排序", decision.Explanation, StringComparison.Ordinal);
+        Assert.Contains("qwen2.5:0.5b", decision.AdvisorExplanation, StringComparison.Ordinal);
     }
 
     [Fact]

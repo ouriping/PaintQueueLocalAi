@@ -77,7 +77,7 @@ static async Task RunAdvisorSampleAsync(DemoSettings settings)
         return;
     }
 
-    Console.WriteLine("模型名来自 ollama list，当前为 " + settings.Model + "。");
+    Console.WriteLine("模型名必须与 ollama list 一致，当前为 " + settings.Model + "。已安装其他标签时用 --model。");
     Console.WriteLine("放行节拍的 AdvisorTimeout 仍是 200 ms。下面这次演示用 " + settings.TimeoutMs.ToString(CultureInfo.InvariantCulture) + " ms，方便看到回复。");
     using var advisor = new OllamaLoopbackAdvisor(new OllamaAdvisorOptions
     {
@@ -108,7 +108,7 @@ static void PrintHelp()
         四段规则仿真始终使用 NullLlmAdvisor。随后按 appsettings 调用本机 Ollama。
 
           --provider ollama|null|llamasharp
-          --model qwen2.5:1.5b      以 ollama list 显示的名字为准
+          --model qwen2.5:0.5b      必须与 ollama list 一致；已安装 1.5b 时传 qwen2.5:1.5b
           --base-url http://127.0.0.1:11434
           --timeout-ms 8000         只影响演示里的顾问调用
           --no-warmup
@@ -137,7 +137,7 @@ internal sealed record DemoSettings(
     public static DemoSettings Load(string[] args)
     {
         var provider = "ollama";
-        var model = "qwen2.5:1.5b";
+        var model = "qwen2.5:0.5b";
         var baseUrl = "http://127.0.0.1:11434";
         var timeoutMs = 8000;
         var warmup = true;

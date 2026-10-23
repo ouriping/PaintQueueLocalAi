@@ -4,10 +4,11 @@
 
 ## 已经装好 Ollama 和 Qwen
 
-跳过权重下载。`ollama list` 里的名字就是演示程序的 `--model`：
+跳过权重下载。`--model` 必须和 `ollama list` 里的名字一致。演示默认是 `qwen2.5:0.5b`；已经拉取 1.5b 时再传 `--model qwen2.5:1.5b`。
 
 ```bash
 ollama list
+dotnet run --project src/PaintQueueLocalAi.Demo -- --provider ollama
 dotnet run --project src/PaintQueueLocalAi.Demo -- --provider ollama --model qwen2.5:1.5b
 ```
 

@@ -39,6 +39,8 @@ public class AdvisorAndParallelTests
         Assert.Equal(AdvisorOutcome.Faulted, faulted.AdvisorOutcome);
         Assert.Equal("B-0012", faulted.Selected!.VehicleId);
         Assert.Contains("model file missing", faulted.AdvisorExplanation);
+        Assert.Contains("本地顾问故障，已回退到规则排序。", faulted.Explanation);
+        Assert.DoesNotContain("ollama list", faulted.Explanation, StringComparison.Ordinal);
 
         var invalid = new FlagAdvisor
         {

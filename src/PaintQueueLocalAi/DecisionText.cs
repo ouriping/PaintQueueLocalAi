@@ -88,7 +88,7 @@ internal static class DecisionText
             .Append("），可放行候选 ")
             .Append(ranked.Count)
             .Append(" 个。");
-        builder.Append(AdvisorSentence(advisorOutcome, advisorReordered, ruleWinnerId, selected));
+        builder.Append(AdvisorSentence(advisorOutcome, advisorReordered, ruleWinnerId, selected, advisorExplanation));
         if (!string.IsNullOrWhiteSpace(advisorExplanation))
         {
             builder.Append("顾问说明：").Append(advisorExplanation);
@@ -185,13 +185,16 @@ internal static class DecisionText
         AdvisorOutcome outcome,
         bool reordered,
         string ruleWinnerId,
-        CandidateScore selected)
+        CandidateScore selected,
+        string? advisorExplanation)
     {
         return outcome switch
         {
             AdvisorOutcome.NotConsulted => "未询问顾问。",
             AdvisorOutcome.Declined => "未接入本地顾问，规则结果即为放行决定。",
             AdvisorOutcome.TimedOut => "本地顾问超时，已回退到规则排序。",
+            AdvisorOutcome.Faulted when IsModelNotFound(advisorExplanation)
+                => "本地顾问故障：模型未找到（HTTP 404）。请运行 ollama list，用 --model 传入列表里的名字。已回退到规则排序。",
             AdvisorOutcome.Faulted => "本地顾问故障，已回退到规则排序。",
             AdvisorOutcome.InvalidReorder => "本地顾问重排无效，已回退到规则排序。",
             AdvisorOutcome.Applied when reordered && !string.Equals(ruleWinnerId, selected.CandidateId, StringComparison.Ordinal)
@@ -199,6 +202,18 @@ internal static class DecisionText
             AdvisorOutcome.Applied when reordered => "本地顾问调整了名次，放行对象未变。",
             _ => "本地顾问未改写规则排序。"
         };
+    }
+
+    private static bool IsModelNotFound(string? explanation)
+    {
+        if (string.IsNullOrWhiteSpace(explanation))
+        {
+            return false;
+        }
+
+        return explanation.Contains("404", StringComparison.Ordinal)
+            || explanation.Contains("model not found", StringComparison.OrdinalIgnoreCase)
+            || explanation.Contains("模型未找到", StringComparison.Ordinal);
     }
 
     private static string N(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);

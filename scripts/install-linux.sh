@@ -38,14 +38,16 @@ if [[ "$INSTALL_OLLAMA" -eq 1 ]]; then
 fi
 
 echo "Already have Ollama and a Qwen model? Skip --download-model and --install-ollama."
-echo "Pass whatever name 'ollama list' shows. The demo default is qwen2.5:1.5b."
+echo "Pass whatever name 'ollama list' shows. The demo default is qwen2.5:0.5b."
+echo "0.5b is smaller and easier on the CPU timeout. If this machine has qwen2.5:1.5b, pass --model qwen2.5:1.5b."
 
 if command -v ollama >/dev/null 2>&1; then
   echo "Ollama is installed. Keep it on loopback only:"
   echo "  export OLLAMA_HOST=127.0.0.1:11434"
   echo "  ollama list"
   echo "Pull only when this machine may use the network and the tag is missing:"
-  echo "  ollama pull qwen2.5:1.5b"
+  echo "  ollama pull qwen2.5:0.5b"
+  echo "  ollama pull qwen2.5:1.5b   # recommended plant size when that tag is wanted"
   echo "After a LoRA export, register the GGUF with Ollama (LLamaSharp is not required):"
   echo "  ollama create paint-queue-advisor -f $ROOT/scripts/ollama/Modelfile"
 else
@@ -65,4 +67,5 @@ echo "CPU only. Do not assume CUDA. The plant iGPU is Intel UHD 770."
 echo "Rules only:"
 echo "  dotnet run --project src/PaintQueueLocalAi.Demo -- --provider null"
 echo "Ollama + Qwen (falls back to the rules if Ollama is down):"
+echo "  dotnet run --project src/PaintQueueLocalAi.Demo -- --provider ollama --model qwen2.5:0.5b"
 echo "  dotnet run --project src/PaintQueueLocalAi.Demo -- --provider ollama --model qwen2.5:1.5b"

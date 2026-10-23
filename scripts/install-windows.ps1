@@ -25,7 +25,8 @@ Write-Host "Repo: $Root"
 Write-Host "Model directory (do not commit): $ModelDirectory"
 Write-Host "Target: Intel i5-14500, 16 GB RAM, Intel UHD 770, CPU only, no CUDA."
 Write-Host "Already have Ollama and Qwen? Skip -DownloadModel and -InstallOllama."
-Write-Host "Use the name from 'ollama list'. The demo default is qwen2.5:1.5b."
+Write-Host "Use the name from 'ollama list'. The demo default is qwen2.5:0.5b."
+Write-Host "0.5b is smaller and easier on the CPU timeout. If the plant has qwen2.5:1.5b, pass --model qwen2.5:1.5b."
 
 $Dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
 if (-not $Dotnet) {
@@ -60,7 +61,8 @@ if ($InstallOllama -or $Provider -eq "Ollama" -or $Provider -eq "Check") {
     Write-Host "If Qwen is already listed, do not pull or download weights:"
     Write-Host "  ollama list"
     Write-Host "Pull only when this PC may use the network and the tag is missing:"
-    Write-Host "  ollama pull qwen2.5:1.5b"
+    Write-Host "  ollama pull qwen2.5:0.5b"
+    Write-Host "  ollama pull qwen2.5:1.5b   # recommended plant size when that tag is wanted"
     Write-Host "After LoRA export, register the GGUF with Ollama. LLamaSharp is not required:"
     Write-Host "  ollama create paint-queue-advisor -f scripts\ollama\Modelfile"
 }
@@ -80,6 +82,7 @@ Write-Host ""
 Write-Host "Rules only:"
 Write-Host "  dotnet run --project src\PaintQueueLocalAi.Demo -- --provider null"
 Write-Host "Ollama + Qwen (falls back to the rules if Ollama is down; release timeout stays 200 ms):"
+Write-Host "  dotnet run --project src\PaintQueueLocalAi.Demo -- --provider ollama --model qwen2.5:0.5b"
 Write-Host "  dotnet run --project src\PaintQueueLocalAi.Demo -- --provider ollama --model qwen2.5:1.5b"
 Write-Host "Publish for this PC from a connected build machine:"
 Write-Host "  dotnet publish src\PaintQueueLocalAi.Demo\PaintQueueLocalAi.Demo.csproj -c Release -r win-x64 --self-contained true -o publish\win-x64"

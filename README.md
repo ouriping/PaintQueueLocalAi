@@ -129,14 +129,15 @@ if (decision.ShouldRelease)
 
 ### 已经装好 Ollama 和 Qwen
 
-不需要再下载 GGUF。`ollama list` 里显示的名字就是 `--model` 要传的名字，默认按 `qwen2.5:1.5b`。Ollama 没开、名字不对、或回复来不及，规则顺序照旧，四段仿真仍然可以通过。
+不需要再下载 GGUF。`--model` 必须和 `ollama list` 里显示的名字一致。演示默认是 `qwen2.5:0.5b`：更小，在这台 CPU 上更不容易顶到超时。现场如果已经拉取了 1.5b，改传 `--model qwen2.5:1.5b`。Ollama 没开、名字不对（常见是 HTTP 404，模型未找到）、或回复来不及，规则顺序照旧，四段仿真仍然可以通过。
 
 ```bash
 ollama list
+dotnet run --project src/PaintQueueLocalAi.Demo -- --provider ollama
 dotnet run --project src/PaintQueueLocalAi.Demo -- --provider ollama --model qwen2.5:1.5b
 ```
 
-演示程序先打印四段规则仿真，再对「最小序号」快照问一次本机 Qwen。`src/PaintQueueLocalAi.Demo/appsettings.json` 的默认就是 `provider=ollama`、`model=qwen2.5:1.5b`、`http://127.0.0.1:11434`。只想看四段仿真时加 `--provider null`。
+演示程序先打印四段规则仿真，再对「最小序号」快照问一次本机 Qwen。`src/PaintQueueLocalAi.Demo/appsettings.json` 的默认就是 `provider=ollama`、`model=qwen2.5:0.5b`、`http://127.0.0.1:11434`。只想看四段仿真时加 `--provider null`。
 
 放行节拍里的 `DispatchPolicy.AdvisorTimeout` 仍是 200 ms。演示里的那一次调用默认放到 8 秒，方便在这台 CPU 上看到回复；产线不要把 8 秒挡在 `CommitReleaseAsync` 前面。
 
@@ -149,7 +150,7 @@ using PaintQueueLocalAi.Local;
 var advisor = new OllamaLoopbackAdvisor(new OllamaAdvisorOptions
 {
     BaseUrl = "http://127.0.0.1:11434",
-    Model = "qwen2.5:1.5b" // 或 ollama list 里的其他名字
+    Model = "qwen2.5:0.5b" // 必须与 ollama list 一致；已有 1.5b 时改为 qwen2.5:1.5b
 });
 var engine = new DispatchEngine(advisor: advisor);
 ```
@@ -160,13 +161,14 @@ var engine = new DispatchEngine(advisor: advisor);
 
 | 模型 | 体量 | 用途 |
 | --- | --- | --- |
-| Qwen2.5-1.5B-Instruct Q4_K_M | 约 1 GB | 首选。Ollama 标签一般是 `qwen2.5:1.5b` |
+| Qwen2.5-0.5B | 约 400 MB | 演示默认。更小，CPU 上更容易落在超时内。Ollama 标签一般是 `qwen2.5:0.5b` |
+| Qwen2.5-1.5B-Instruct Q4_K_M | 约 1 GB | 现场已安装时的推荐体量。标签一般是 `qwen2.5:1.5b`，需显式 `--model` |
 | Qwen2.5-3B-Instruct Q4_K_M | 约 2 GB | 解释更好，但不适合卡在 200 ms 的放行节拍里 |
 | Phi-3-mini-4k-instruct Q4 | 约 2.2 GB | 和 3B 类似的备选 |
 
 i5-14500 有 6 个性能核和 8 个能效核，20 线程，内存 16 GB。UHD 770 没有可用的 CUDA 路径，不要按独显来估算。Ollama 在这台机器上走 CPU。llama.cpp 的 CPU 后端是备选；Vulkan 只能当作试验。7B 及以上的 Q4 权重要占数 GB，再叠 MES/SCADA 容易把工控机顶满，不建议放进放行回路。
 
-默认 200 ms 只够 1.5B 生成很短的编号列表。3B 更适合在规则已经放行之后，异步给 HMI 补一句解释，不要挡在 `CommitReleaseAsync` 里面。本仓库不附带权重，也不会在运行时下载。模型文件由现场自行拷贝，或直接使用已经装好的 Ollama 模型。
+默认 200 ms 在 CPU 上更适合 0.5B 生成很短的编号列表，因此演示默认 `qwen2.5:0.5b`。现场已经装了 1.5B 时，它仍是推荐体量，用 `--model qwen2.5:1.5b`，同样只够很短的回复。3B 更适合在规则已经放行之后，异步给 HMI 补一句解释，不要挡在 `CommitReleaseAsync` 里面。本仓库不附带权重，也不会在运行时下载。模型文件由现场自行拷贝，或直接使用已经装好的 Ollama 模型。
 
 ### 还没有模型时再安装
 
@@ -226,6 +228,6 @@ dotnet run --project src/PaintQueueLocalAi.Demo
 
 `PaintQueueLocalAi` is an offline .NET 8 library that decides which painted body to release from a bank of about eight buffer lanes. A deterministic `DispatchEngine` is the source of truth. Priority is: safety interlocks, urgent exit demand (which lowers the min-sequence weight), booth A fast-lane direct release, smallest production sequence among lane heads, then fuller-buffer preference. Only the head of a FIFO lane can move.
 
-`ILlmAdvisor` may reorder the top few candidates or add an explanation. `NullLlmAdvisor` still drives the four scripted scenarios. The recommended local path is loopback Ollama with Qwen (`qwen2.5:1.5b`, or whatever `ollama list` shows). If Ollama is down, slow, or wrong, the rule order stands. The engine never calls a cloud API. On an i5-14500 with 16 GB of RAM and UHD 770, keep the release-path timeout at 200 ms. Fine-tune with LoRA, then `ollama create` from the Modelfile. GGUF via LLamaSharp is optional and is not required for that workflow. Do not put a 7B model on the release path.
+`ILlmAdvisor` may reorder the top few candidates or add an explanation. `NullLlmAdvisor` still drives the four scripted scenarios. The local path is loopback Ollama with Qwen. The demo default is `qwen2.5:0.5b` (smaller, and a better fit for the CPU timeout on this machine). The name must match `ollama list`. Plants that already have the 1.5B tag should pass `--model qwen2.5:1.5b`; that size stays the recommended plant model when it is installed. If Ollama is down, the model name is missing (HTTP 404), the reply is slow, or the output is wrong, the rule order stands. The engine never calls a cloud API. On an i5-14500 with 16 GB of RAM and UHD 770, keep the release-path timeout at 200 ms. Fine-tune with LoRA, then `ollama create` from the Modelfile. GGUF via LLamaSharp is optional and is not required for that workflow. Do not put a 7B model on the release path.
 
 Queue snapshots are scored in parallel. `CommitReleaseAsync` holds an `IReleaseGate` token for the shared conveyor plus the lane or exit A, so two lanes cannot move the same hardware at once. Share one gate across every caller of that conveyor.

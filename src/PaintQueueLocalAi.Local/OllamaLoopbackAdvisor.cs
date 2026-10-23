@@ -64,7 +64,7 @@ public sealed record OllamaAdvisorOptions
 {
     public string BaseUrl { get; init; } = "http://127.0.0.1:11434";
 
-    public string Model { get; init; } = "qwen2.5:1.5b";
+    public string Model { get; init; } = "qwen2.5:0.5b";
 
     public int MaxTokens { get; init; } = 80;
 
@@ -137,7 +137,8 @@ public sealed class OllamaLoopbackAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalA
         }
         catch (Exception ex)
         {
-            Status = "预热失败: " + ex.GetType().Name;
+            var detail = string.IsNullOrWhiteSpace(ex.Message) ? ex.GetType().Name : ex.Message.Trim();
+            Status = "预热失败: " + detail;
         }
     }
 
@@ -204,6 +205,12 @@ public sealed class OllamaLoopbackAdvisor : ILlmAdvisor, IAdvisorWarmup, ILocalA
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
+            if (status == (int)HttpStatusCode.NotFound)
+            {
+                throw new HttpRequestException(
+                    "Ollama HTTP 404：模型未找到（请求的模型是 " + _options.Model + "）。");
+            }
+
             throw new HttpRequestException("Ollama HTTP " + status);
         }
 
