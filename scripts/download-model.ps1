@@ -1,6 +1,6 @@
-# Intentionally download a GGUF. Skip this when `ollama list` already shows Qwen.
-# The dispatch path never calls this.
-# Windows PowerShell 5.1 and PowerShell 7. ASCII only.
+﻿# 有意下载一份 GGUF。若 `ollama list` 里已经有 Qwen，可跳过。
+# 放行路径不会调用本脚本。
+# 供 Windows PowerShell 5.1 与 PowerShell 7 使用。文件为 UTF-8（带 BOM），以便 5.1 解析中文注释。
 param(
     [ValidateSet("1.5b", "3b", "phi3")]
     [string]$Variant = "1.5b",

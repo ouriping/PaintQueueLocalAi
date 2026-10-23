@@ -1,12 +1,12 @@
 namespace PaintQueueLocalAi;
 
-/// <summary>Lock-key helpers for the shared conveyor and the lane or exit being released.</summary>
+/// <summary>共享输送链，以及正在放行的车道或出口的锁键辅助方法。</summary>
 public static class ReleaseResources
 {
-    /// <summary>Lock key for the booth A fast-lane path.</summary>
+    /// <summary>喷房 A 口快车道的锁键。</summary>
     public const string ExitA = "exit:A";
 
-    /// <summary>Lock key for a buffer lane. Paired with the request's shared resource during a commit.</summary>
+    /// <summary>缓存车道的锁键。提交放行时与请求的共享资源成对使用。</summary>
     public static string Queue(string queueId)
     {
         if (string.IsNullOrWhiteSpace(queueId))

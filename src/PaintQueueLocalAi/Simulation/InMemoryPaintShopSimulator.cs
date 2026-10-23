@@ -4,15 +4,15 @@ using PaintQueueLocalAi;
 namespace PaintQueueLocalAi.Simulation;
 
 /// <summary>
-/// In-memory acceptance run for the four shop stories: min sequence, fast lane A,
-/// urgent weight reduction, and two lanes releasing through one gate.
-/// The simulator always builds its own engine with <see cref="DispatchPolicy.Default"/> and no local model.
+/// 四段车间故事的内存验收：最小序号、A 口快车道、
+/// 紧急降权，以及两条车道经同一个放行闸放行。
+/// 仿真器始终用 <see cref="DispatchPolicy.Default"/> 自建引擎，且不加载本地模型。
 /// </summary>
 public sealed class InMemoryPaintShopSimulator
 {
     private readonly DispatchEngine _engine = new();
 
-    /// <summary>Run the four scenarios in order.</summary>
+    /// <summary>按顺序运行这四个场景。</summary>
     public async Task<SimulationReport> RunAllAsync(CancellationToken cancellationToken = default)
     {
         var scenarios = new[]

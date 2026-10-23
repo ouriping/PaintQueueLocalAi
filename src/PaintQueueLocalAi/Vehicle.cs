@@ -1,26 +1,26 @@
 namespace PaintQueueLocalAi;
 
 /// <summary>
-/// One painted body. <see cref="SequenceNumber"/> is the production sequence, not the arrival order.
-/// Smaller numbers should leave the buffer bank first when the line is not starving.
+/// 一辆已涂装车身。<see cref="SequenceNumber"/> 是生产序号，不是到达顺序。
+/// 产线不缺车时，较小的序号应先离开涂装缓存。
 /// </summary>
 public sealed record Vehicle
 {
-    /// <summary>Stable body id (body number, VIN, or carrier id). Unique inside one request snapshot.</summary>
+    /// <summary>稳定的车身编号（车身号、VIN 或载具号）。在一次请求快照内唯一。</summary>
     public required string Id { get; init; }
 
-    /// <summary>Production sequence. The dispatch score prefers smaller values.</summary>
+    /// <summary>生产序号。放行评分偏向较小的值。</summary>
     public required int SequenceNumber { get; init; }
 
-    /// <summary>Booth exit that painted this body. Informational; it does not by itself open the fast lane.</summary>
+    /// <summary>涂装该车身的喷房出口。仅供参考，本身不会打开快车道。</summary>
     public required BoothExitId SourceExit { get; init; }
 
-    /// <summary>Optional color code copied onto the decision so an HMI can show it without revisiting the queue.</summary>
+    /// <summary>可选颜色代码，会复制到决策上，使人机界面不必再回看队列。</summary>
     public string? ColorCode { get; init; }
 
-    /// <summary>Optional model or body-style code. Not used by the scorer.</summary>
+    /// <summary>可选车型或车身形式代码。评分不使用。</summary>
     public string? ModelCode { get; init; }
 
-    /// <summary>When the body entered its current slot. Not used by the scorer.</summary>
+    /// <summary>车身进入当前车位的时刻。评分不使用。</summary>
     public DateTimeOffset? ArrivedAt { get; init; }
 }

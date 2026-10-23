@@ -3,9 +3,9 @@ using System.Collections.Concurrent;
 namespace PaintQueueLocalAi;
 
 /// <summary>
-/// In-process token gate. One semaphore per resource id. Safe for concurrent evaluators;
-/// only the commit path should call it. The dictionary grows with distinct ids, which on this
-/// line is a handful of conveyors and lanes.
+/// 进程内令牌闸。每个资源编号一把信号量。并发评估是安全的；
+/// 只有提交路径应当调用它。字典随不同编号增长，在本产线上
+/// 也就是少数几条输送链和车道。
 /// </summary>
 public sealed class ResourceTokenReleaseGate : IReleaseGate
 {

@@ -1,9 +1,9 @@
-# Training machine only. The plant PC does not need these packages.
+# 仅训练机需要。现场工控机不需要这些包。
 transformers>=4.45,<5
 peft>=0.13,<1
 accelerate>=1.0,<2
 torch>=2.4
 sentencepiece>=0.2
 protobuf>=5
-# Optional, GPU QLoRA only:
+# 可选，仅 GPU 上的 QLoRA：
 # bitsandbytes>=0.44

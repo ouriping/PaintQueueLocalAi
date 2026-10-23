@@ -1,12 +1,12 @@
 namespace PaintQueueLocalAi;
 
 /// <summary>
-/// Runs one independent read per buffer lane. The default implementation overlaps those reads.
-/// A replacement must invoke every action exactly once; the engine fails the decision if an action
-/// never finishes. Actions may run concurrently and must only write to their own result slot.
+/// 每条缓存车道做一次独立读取。默认实现会重叠这些读取。
+/// 替换实现必须把每个动作正好调用一次；若某个动作始终不结束，引擎会使该次决策失败。
+/// 动作可以并发运行，且只能写入自己的结果槽。
 /// </summary>
 public interface IQueueEvaluationScheduler
 {
-    /// <summary>Run every queue evaluation. An empty list completes immediately.</summary>
+    /// <summary>运行全部队列评估。空列表立即完成。</summary>
     Task RunAsync(IReadOnlyList<Func<CancellationToken, Task>> queueEvaluations, CancellationToken cancellationToken);
 }

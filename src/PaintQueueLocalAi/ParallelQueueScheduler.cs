@@ -1,18 +1,18 @@
 namespace PaintQueueLocalAi;
 
 /// <summary>
-/// Evaluates buffer lanes on the thread pool, at most <see cref="MaxDegreeOfParallelism"/> at a time.
-/// The default cap is 8, matching the buffer bank on the target line. Physical release is not done here;
-/// <see cref="IReleaseGate"/> serializes that separately.
+/// 在线程池上评估缓存车道，同时最多 <see cref="MaxDegreeOfParallelism"/> 条。
+/// 默认上限为 8，与目标产线的涂装缓存数量一致。这里不做物理放行；
+/// 那一步由 <see cref="IReleaseGate"/> 另行串行化。
 /// </summary>
 public sealed class ParallelQueueScheduler : IQueueEvaluationScheduler
 {
-    /// <summary>Shared scheduler capped at 8 concurrent lane reads.</summary>
+    /// <summary>共享调度器，最多同时读取 8 条车道。</summary>
     public static ParallelQueueScheduler Instance { get; } = new(8);
 
     private readonly int _maxDegreeOfParallelism;
 
-    /// <summary>Create a scheduler that overlaps at most <paramref name="maxDegreeOfParallelism"/> lanes.</summary>
+    /// <summary>创建调度器，重叠的车道数不超过 <paramref name="maxDegreeOfParallelism"/>。</summary>
     public ParallelQueueScheduler(int maxDegreeOfParallelism)
     {
         if (maxDegreeOfParallelism <= 0)
@@ -26,7 +26,7 @@ public sealed class ParallelQueueScheduler : IQueueEvaluationScheduler
         _maxDegreeOfParallelism = maxDegreeOfParallelism;
     }
 
-    /// <summary>Configured overlap cap.</summary>
+    /// <summary>配置的重叠上限。</summary>
     public int MaxDegreeOfParallelism => _maxDegreeOfParallelism;
 
     /// <inheritdoc />
@@ -59,8 +59,8 @@ public sealed class ParallelQueueScheduler : IQueueEvaluationScheduler
         await limiter.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // Queue reads are usually synchronous PLC snapshots. Task.Run lets those reads
-            // occupy different pool threads instead of draining one after another on the caller.
+            // 队列读取通常是同步的 PLC 快照。Task.Run 让这些读取
+            // 占用不同的线程池线程，而不是在调用方上一条接一条排空。
             await Task.Run(() => evaluation(cancellationToken), cancellationToken).ConfigureAwait(false);
         }
         finally

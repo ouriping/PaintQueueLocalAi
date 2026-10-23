@@ -1,28 +1,28 @@
 namespace PaintQueueLocalAi;
 
-/// <summary>Decision ladder, highest priority first. See <see cref="DispatchPriorities"/>.</summary>
+/// <summary>决策阶梯，优先级从高到低。参见 <see cref="DispatchPriorities"/>。</summary>
 public enum DispatchPriority
 {
-    /// <summary>Global interlock. A hold ends the decision.</summary>
+    /// <summary>全局联锁。一旦保持，决策即结束。</summary>
     SafetyInterlocks = 0,
 
-    /// <summary>Urgent exit demand. Lowers the min-sequence weight and commits on the current snapshot.</summary>
+    /// <summary>出口紧急要车。降低最小序号权重，并按当前快照提交。</summary>
     UrgentExitRequest = 1,
 
-    /// <summary>Booth exit A may release directly, ahead of every buffer head.</summary>
+    /// <summary>喷房出口 A 可以直放，排在所有缓存车头之前。</summary>
     FastLaneA = 2,
 
-    /// <summary>Prefer the smallest production sequence among buffer heads. Weight is reduced while urgent.</summary>
+    /// <summary>在缓存车头中优先最小生产序号。紧急时降低该项权重。</summary>
     MinSequencePreference = 3,
 
-    /// <summary>Prefer the fuller buffer when sequence closeness does not decide.</summary>
+    /// <summary>序号接近程度无法决定时，优先更满的缓存。</summary>
     BufferLoadBalance = 4
 }
 
-/// <summary>The priority contract implemented by <see cref="DispatchEngine"/>.</summary>
+/// <summary><see cref="DispatchEngine"/> 实现的优先级约定。</summary>
 public static class DispatchPriorities
 {
-    /// <summary>Highest priority first: safety, urgent mode, fast lane A, min sequence, then load balance.</summary>
+    /// <summary>优先级从高到低：安全、紧急模式、A 口快车道、最小序号，然后是负载均衡。</summary>
     public static IReadOnlyList<DispatchPriority> HighestFirst { get; } =
     [
         DispatchPriority.SafetyInterlocks,

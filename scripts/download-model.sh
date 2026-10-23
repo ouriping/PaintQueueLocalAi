@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Intentionally download a GGUF. Skip this when `ollama list` already shows Qwen.
-# The dispatch path never calls this.
+# 有意下载一份 GGUF。若 `ollama list` 里已经有 Qwen，可跳过。
+# 放行路径不会调用本脚本。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

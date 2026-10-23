@@ -1,5 +1,5 @@
-# Plant PC setup (Windows). ASCII only so Windows PowerShell 5.1 can parse it.
-# Nothing is downloaded unless -DownloadModel or -InstallOllama is passed.
+﻿# 现场工控机安装（Windows）。文件为 UTF-8（带 BOM），以便 Windows PowerShell 5.1 解析中文注释。
+# 除非传入 -DownloadModel 或 -InstallOllama，否则不会下载任何内容。
 param(
     [ValidateSet("Check", "Ollama", "LlamaSharp")]
     [string]$Provider = "Check",

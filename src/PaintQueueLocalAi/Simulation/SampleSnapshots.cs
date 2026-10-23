@@ -3,18 +3,18 @@ using PaintQueueLocalAi;
 namespace PaintQueueLocalAi.Simulation;
 
 /// <summary>
-/// Fixed shop snapshots used by the demo and the acceptance tests.
-/// Fills in the min-sequence snapshot stay low and nearly equal so load balance does not overturn the smallest head.
-/// The urgent snapshot is the opposite case: one almost-empty lane holds the smaller sequence, and a full lane holds the next one.
+/// 演示和验收测试使用的固定车间快照。
+/// 最小序号快照里的充满率都低且几乎相等，以免负载均衡推翻最小车头。
+/// 紧急快照是相反情形：一条几乎空的车道拿着更小的序号，一条满库车道拿着下一个序号。
 /// </summary>
 public static class SampleSnapshots
 {
-    /// <summary>Shared merge used by the sample requests.</summary>
+    /// <summary>示例请求共用的合流点。</summary>
     public const string Merge = "MERGE-01";
 
     /// <summary>
-    /// Eight buffer lanes. The smallest sequence in the building is buried behind BUF-01's head,
-    /// and an even smaller body is sitting on exit B. Neither can be released. The smallest head is B-0012.
+    /// 八条缓存车道。车间里最小的序号埋在 BUF-01 车头后面，
+    /// 更小的一辆车停在出口 B。两者都不能放行。最小车头是 B-0012。
     /// </summary>
     public static DispatchRequest MinSequence()
     {
@@ -50,8 +50,8 @@ public static class SampleSnapshots
     }
 
     /// <summary>
-    /// Exit A has a higher sequence than both buffer heads, and the fast lane is open.
-    /// The fast-lane tier must win even though a buffer head scores higher on sequence.
+    /// 出口 A 的序号高于两个缓存车头，且快车道已打开。
+    /// 即使某个缓存车头的序号得分更高，快车道档位也必须胜出。
     /// </summary>
     public static DispatchRequest FastLane()
     {
@@ -81,8 +81,8 @@ public static class SampleSnapshots
     }
 
     /// <summary>
-    /// Two occupied lanes plus six empty ones. BUF-01 holds sequence 100 at 10% fill.
-    /// BUF-02 holds sequence 110 at 100% fill. Non-urgent keeps 100; urgent switches to the full lane.
+    /// 两条有车的车道，外加六条空车道。BUF-01 以 10% 充满率持有序号 100。
+    /// BUF-02 以 100% 充满率持有序号 110。非紧急时仍放行 100；紧急时改放满库车道。
     /// </summary>
     public static DispatchRequest Urgent(bool urgent)
     {
@@ -118,7 +118,7 @@ public static class SampleSnapshots
         };
     }
 
-    /// <summary>Two lanes that each want to release their own head onto the same merge.</summary>
+    /// <summary>两条车道各自要把自己的车头放到同一合流点上放行。</summary>
     public static (DispatchRequest Left, DispatchRequest Right) ContendedPair()
     {
         DispatchRequest One(string requestId, string queueId, string vehicleId, int sequence) => new()

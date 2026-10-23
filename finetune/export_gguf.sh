@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Convert a merged Hugging Face model to a Q4_K_M GGUF the plant PC can load.
-# Requires a llama.cpp checkout. This does not run inside the dispatch process.
+# 把合并后的 Hugging Face 模型转成现场工控机可以加载的 Q4_K_M GGUF。
+# 需要一份 llama.cpp 检出。本脚本不在放行进程内运行。
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then

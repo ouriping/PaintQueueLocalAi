@@ -3,38 +3,38 @@ using PaintQueueLocalAi;
 
 namespace PaintQueueLocalAi.Simulation;
 
-/// <summary>One canned scenario after it has been executed.</summary>
+/// <summary>一个预设场景执行之后的结果。</summary>
 public sealed record ScenarioRun
 {
-    /// <summary>Stable key: <c>min-sequence</c>, <c>fast-lane-a</c>, <c>urgent-weight</c>, or <c>contended-gate</c>.</summary>
+    /// <summary>稳定键：<c>min-sequence</c>、<c>fast-lane-a</c>、<c>urgent-weight</c> 或 <c>contended-gate</c>。</summary>
     public required string Key { get; init; }
 
-    /// <summary>Chinese title for the transcript.</summary>
+    /// <summary>记录用的中文标题。</summary>
     public required string Title { get; init; }
 
-    /// <summary>True when the live engine matched the scenario contract.</summary>
+    /// <summary>现场引擎符合该场景约定时为 true。</summary>
     public required bool Passed { get; init; }
 
-    /// <summary>Chinese narrative plus the engine explanation.</summary>
+    /// <summary>中文叙述，加上引擎说明。</summary>
     public required string Detail { get; init; }
 
-    /// <summary>Decisions produced by the scenario, in run order.</summary>
+    /// <summary>该场景产生的决策，按运行顺序排列。</summary>
     public required IReadOnlyList<DispatchDecision> Decisions { get; init; }
 
-    /// <summary>Peak number of physical-release callbacks inside the gate. Null when the scenario does not commit.</summary>
+    /// <summary>放行闸内物理放行回调的峰值个数。场景不提交时为 null。</summary>
     public int? MaxReleaseConcurrency { get; init; }
 }
 
-/// <summary>Transcript of the canned scenarios.</summary>
+/// <summary>预设场景的记录。</summary>
 public sealed record SimulationReport
 {
-    /// <summary>Scenarios in display order.</summary>
+    /// <summary>按显示顺序排列的场景。</summary>
     public required IReadOnlyList<ScenarioRun> Scenarios { get; init; }
 
-    /// <summary>True when every scenario passed.</summary>
+    /// <summary>每个场景都通过时为 true。</summary>
     public bool AllPassed => Scenarios.Count > 0 && Scenarios.All(scenario => scenario.Passed);
 
-    /// <summary>Multi-line Chinese transcript for a console or a log.</summary>
+    /// <summary>供控制台或日志使用的多行中文记录。</summary>
     public string ToChineseText()
     {
         var builder = new StringBuilder();
