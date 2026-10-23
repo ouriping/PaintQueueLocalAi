@@ -1,20 +1,20 @@
 namespace PaintQueueLocalAi;
 
-/// <summary>Live state of one spray-booth exit at the moment of the request.</summary>
+/// <summary>请求时刻某一喷房出口的现场状态。</summary>
 public sealed record BoothExit
 {
-    /// <summary>Which physical exit this snapshot describes.</summary>
+    /// <summary>本快照对应的物理出口。</summary>
     public required BoothExitId Id { get; init; }
 
-    /// <summary>Body currently sitting on the exit, or null when the exit is clear.</summary>
+    /// <summary>当前停在出口上的车身；出口空闲时为 null。</summary>
     public Vehicle? PresentVehicle { get; init; }
 
     /// <summary>
-    /// Direct-release path is open. Honored only for <see cref="BoothExitId.A"/>.
-    /// The same flag on exit B is ignored.
+    /// 直放通道已打开。仅对 <see cref="BoothExitId.A"/> 生效。
+    /// 出口 B 上的同一标志会被忽略。
     /// </summary>
     public bool FastLaneOpen { get; init; }
 
-    /// <summary>Exit is mechanically held. A fast-lane candidate is not created while this is set.</summary>
+    /// <summary>出口被机械保持。置位期间不会生成快车道候选。</summary>
     public bool ReleaseBlocked { get; init; }
 }

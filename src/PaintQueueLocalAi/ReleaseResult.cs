@@ -1,20 +1,20 @@
 namespace PaintQueueLocalAi;
 
-/// <summary>Outcome of <see cref="IDispatchEngine.CommitReleaseAsync"/>.</summary>
+/// <summary><see cref="IDispatchEngine.CommitReleaseAsync"/> 的结果。</summary>
 public sealed record ReleaseResult
 {
-    /// <summary>The evaluation that was committed, or the hold that skipped the gate.</summary>
+    /// <summary>已提交的那次评估，或跳过放行闸的那次保持。</summary>
     public required DispatchDecision Decision { get; init; }
 
-    /// <summary>True when the physical-release callback was invoked while the token was held.</summary>
+    /// <summary>物理放行回调在持有令牌期间被调用时为 true。</summary>
     public required bool Committed { get; init; }
 
-    /// <summary>Shared resource id from the request.</summary>
+    /// <summary>请求中的共享资源编号。</summary>
     public required string ResourceId { get; init; }
 
-    /// <summary>Every lock taken for the commit. Empty when <see cref="Committed"/> is false.</summary>
+    /// <summary>本次提交取得的全部锁。<see cref="Committed"/> 为 false 时为空。</summary>
     public required IReadOnlyList<string> LockedResourceIds { get; init; }
 
-    /// <summary>Token id while the callback ran. Null when nothing was committed.</summary>
+    /// <summary>回调运行期间的令牌编号。未提交时为 null。</summary>
     public Guid? TokenId { get; init; }
 }

@@ -1,17 +1,17 @@
 namespace PaintQueueLocalAi;
 
 /// <summary>
-/// Exclusive ownership of one or more physical resources.
-/// Disposing the token frees every resource it holds. Dispose is idempotent.
+/// 对一个或多个物理资源的独占持有。
+/// 释放令牌即放开它持有的全部资源。Dispose 是幂等的。
 /// </summary>
 public interface IReleaseToken : IDisposable, IAsyncDisposable
 {
-    /// <summary>Resources held, in the order they were acquired (ordinal id order).</summary>
+    /// <summary>持有的资源，顺序为获取顺序（编号的序数顺序）。</summary>
     IReadOnlyList<string> ResourceIds { get; }
 
-    /// <summary>Id of this acquisition, for logs. Not a secret.</summary>
+    /// <summary>本次获取的编号，供日志使用。不是密钥。</summary>
     Guid TokenId { get; }
 
-    /// <summary>UTC time the last resource in the set was acquired.</summary>
+    /// <summary>集合中最后一个资源被获取的 UTC 时间。</summary>
     DateTimeOffset AcquiredAt { get; }
 }

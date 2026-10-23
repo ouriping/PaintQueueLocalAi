@@ -1,61 +1,61 @@
 namespace PaintQueueLocalAi;
 
-/// <summary>Where a releasable body was found.</summary>
+/// <summary>可放行车身的来源。</summary>
 public enum CandidateOrigin
 {
-    /// <summary>Head of a buffer lane (index 0). Bodies behind the head never appear.</summary>
+    /// <summary>缓存车道的车头（下标 0）。车头后面的车身不会出现。</summary>
     BufferHead = 0,
 
-    /// <summary>Body sitting on booth exit A with the fast lane open.</summary>
+    /// <summary>停在喷房出口 A、且快车道已打开的车身。</summary>
     FastLaneA = 1
 }
 
-/// <summary>One releasable body and the weights that ranked it.</summary>
+/// <summary>一辆可放行车身，以及给它排序的各项权重。</summary>
 public sealed record CandidateScore
 {
     /// <summary>
-    /// Id the advisor must use when reordering.
-    /// Buffer heads use <c>buffer:{queueId}:{vehicleId}</c>. The fast lane uses <c>fast-lane-a:{vehicleId}</c>.
+    /// 顾问重排时必须使用的编号。
+    /// 缓存车头为 <c>buffer:{queueId}:{vehicleId}</c>。快车道为 <c>fast-lane-a:{vehicleId}</c>。
     /// </summary>
     public required string CandidateId { get; init; }
 
-    /// <summary>Body id.</summary>
+    /// <summary>车身编号。</summary>
     public required string VehicleId { get; init; }
 
-    /// <summary>Production sequence of this body.</summary>
+    /// <summary>该车身的生产序号。</summary>
     public required int SequenceNumber { get; init; }
 
-    /// <summary>Buffer head or exit-A fast lane.</summary>
+    /// <summary>缓存车头，或出口 A 的快车道。</summary>
     public required CandidateOrigin Origin { get; init; }
 
-    /// <summary>Lane id for a buffer head; null for the fast lane.</summary>
+    /// <summary>缓存车头的车道编号；快车道为 null。</summary>
     public string? QueueId { get; init; }
 
-    /// <summary>Booth that owns the release point. Fast-lane candidates are always <see cref="BoothExitId.A"/>.</summary>
+    /// <summary>放行点所属喷房出口。快车道候选始终是 <see cref="BoothExitId.A"/>。</summary>
     public required BoothExitId SourceExit { get; init; }
 
     /// <summary>
-    /// Hard tier. Fast lane is 1, buffer heads are 0.
-    /// The rule sort orders by tier first, then by <see cref="Score"/>.
-    /// An accepted advisor reorder may place a lower tier first.
+    /// 硬档位。快车道为 1，缓存车头为 0。
+    /// 规则排序先按档位，再按 <see cref="Score"/>。
+    /// 已接受的顾问重排可以把较低档位排到前面。
     /// </summary>
     public required int PriorityTier { get; init; }
 
-    /// <summary><see cref="SequenceComponent"/> plus <see cref="LoadBalanceComponent"/>.</summary>
+    /// <summary><see cref="SequenceComponent"/> 与 <see cref="LoadBalanceComponent"/> 之和。</summary>
     public required decimal Score { get; init; }
 
-    /// <summary>Applied min-sequence weight times closeness to the smallest buffer-head sequence.</summary>
+    /// <summary>实际使用的最小序号权重，乘以相对最小缓存车头序号的接近程度。</summary>
     public required decimal SequenceComponent { get; init; }
 
-    /// <summary>Load-balance weight times the lane fill ratio. Zero for the fast lane.</summary>
+    /// <summary>负载均衡权重乘以车道充满率。快车道此项为 0。</summary>
     public required decimal LoadBalanceComponent { get; init; }
 
-    /// <summary>Lane fill from 0 to 1. Zero for the fast lane, which is not a buffer.</summary>
+    /// <summary>车道充满率，范围 0 到 1。快车道不是缓存，此项为 0。</summary>
     public required decimal FillRatio { get; init; }
 
-    /// <summary>1-based rank after the rule sort and any accepted advisor reorder. Rank 1 is released.</summary>
+    /// <summary>规则排序及已接受的顾问重排之后的名次，从 1 起计。名次 1 被放行。</summary>
     public required int Rank { get; init; }
 
-    /// <summary>Copy of <see cref="Vehicle.ColorCode"/> for the HMI.</summary>
+    /// <summary>供人机界面使用的 <see cref="Vehicle.ColorCode"/> 副本。</summary>
     public string? ColorCode { get; init; }
 }

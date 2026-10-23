@@ -1,23 +1,23 @@
 namespace PaintQueueLocalAi;
 
 /// <summary>
-/// One FIFO buffer lane. Index 0 is the head and the only body that can be released.
-/// Bodies behind the head are visible for traces, but they are not candidates.
+/// 一条先进先出的缓存车道。下标 0 是车头，也是唯一可以放行的车身。
+/// 车头后面的车身可供追溯，但不是候选。
 /// </summary>
 public sealed record BufferQueue
 {
-    /// <summary>Lane id, unique inside one request. Also used as a lock key via <see cref="ReleaseResources.Queue"/>.</summary>
+    /// <summary>车道编号，在一次请求内唯一。也通过 <see cref="ReleaseResources.Queue"/> 用作锁键。</summary>
     public required string Id { get; init; }
 
-    /// <summary>Head at index 0, then the bodies behind it. Empty when the lane has nothing to release.</summary>
+    /// <summary>下标 0 为车头，其后是后面的车身。车道没有可放行车身时为空。</summary>
     public IReadOnlyList<Vehicle> Vehicles { get; init; } = Array.Empty<Vehicle>();
 
-    /// <summary>Physical slot count. Fill ratio is <c>Vehicles.Count / Capacity</c>, clamped to 1.</summary>
+    /// <summary>物理车位数量。充满率为 <c>Vehicles.Count / Capacity</c>，上限为 1。</summary>
     public int Capacity { get; init; } = 10;
 
-    /// <summary>Mechanical or quality hold on this lane. The head is not a candidate while this is set.</summary>
+    /// <summary>本车道的机械或质量保持。置位期间车头不是候选。</summary>
     public bool ReleaseBlocked { get; init; }
 
-    /// <summary>Optional reason shown to operators. Not interpreted by the engine.</summary>
+    /// <summary>可选的操作员原因。引擎不解释该文本。</summary>
     public string? BlockReason { get; init; }
 }

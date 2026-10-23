@@ -1,38 +1,38 @@
 namespace PaintQueueLocalAi;
 
 /// <summary>
-/// Immutable snapshot of one release request. Do not mutate the lists while
-/// <see cref="IDispatchEngine.EvaluateAsync"/> is running; queue reads proceed in parallel.
+/// 一次放行请求的不可变快照。<see cref="IDispatchEngine.EvaluateAsync"/> 运行期间不要修改这些列表；
+/// 队列读取会并行进行。
 /// </summary>
 public sealed record DispatchRequest
 {
-    /// <summary>Caller-defined id, copied onto the decision.</summary>
+    /// <summary>调用方定义的编号，会复制到决策上。</summary>
     public required string RequestId { get; init; }
 
     /// <summary>
-    /// Shared physical resource this release will occupy (merge conveyor, skid lift, common exit).
-    /// Callers that can move the same hardware must pass the same id and share one <see cref="IReleaseGate"/>.
+    /// 本次放行将占用的共享物理资源（合流输送链、滑橇升降机、公共出口）。
+    /// 能驱动同一硬件的调用方必须传入相同编号，并共用一个 <see cref="IReleaseGate"/>。
     /// </summary>
     public required string SharedResourceId { get; init; }
 
-    /// <summary>Booth-exit line that is asking for a body. Trace context; it does not open the fast lane.</summary>
+    /// <summary>正在要车的喷房出口线。仅作追溯，不会因此打开快车道。</summary>
     public required BoothExitId RequestingExit { get; init; }
 
     /// <summary>
-    /// The exit needs a body now. The engine still releases the best current candidate,
-    /// but the min-sequence weight is multiplied by <see cref="DispatchPolicy.UrgentMinSequenceWeightFactor"/>.
+    /// 出口现在就要车。引擎仍放行当前最优候选，
+    /// 但最小序号权重会乘以 <see cref="DispatchPolicy.UrgentMinSequenceWeightFactor"/>。
     /// </summary>
     public bool IsUrgent { get; init; }
 
-    /// <summary>Buffer lanes. About eight on the target line; the engine does not require that count.</summary>
+    /// <summary>缓存车道。目标产线大约八条；引擎不要求必须是这个数量。</summary>
     public required IReadOnlyList<BufferQueue> Queues { get; init; }
 
-    /// <summary>Exit snapshots. Missing A simply means the fast lane has no candidate.</summary>
+    /// <summary>出口快照。缺少 A 只表示快车道没有候选。</summary>
     public required IReadOnlyList<BoothExit> Exits { get; init; }
 
-    /// <summary>Interlocks sampled with the queues. A global hold suppresses every candidate.</summary>
+    /// <summary>与队列一起采样的联锁。全局保持会抑制全部候选。</summary>
     public required SafetyInterlockState Safety { get; init; }
 
-    /// <summary>Trace timestamp. The score does not read the clock.</summary>
+    /// <summary>追溯用时间戳。评分不读时钟。</summary>
     public DateTimeOffset RequestedAt { get; init; } = DateTimeOffset.UtcNow;
 }

@@ -1,11 +1,11 @@
 namespace PaintQueueLocalAi;
 
 /// <summary>
-/// Deterministic dispatch engine for the paint-shop buffer bank.
-/// Priority, highest first: safety interlocks, urgent exit request, fast lane A,
-/// minimum sequence (weight reduced while urgent), then buffer load balance.
-/// A single instance may evaluate many snapshots at once. Commit takes
-/// <see cref="IReleaseGate"/> so two lanes cannot move the same conveyor together.
+/// 涂装缓存的确定性放行引擎。
+/// 优先级从高到低：安全联锁、紧急要车、A 口快车道、
+/// 最小序号（紧急时降低权重），然后是缓存负载均衡。
+/// 同一实例可以同时评估多份快照。提交放行时获取
+/// <see cref="IReleaseGate"/>，避免两条车道同时推动同一条输送链。
 /// </summary>
 public sealed class DispatchEngine : IDispatchEngine
 {
@@ -14,10 +14,10 @@ public sealed class DispatchEngine : IDispatchEngine
     private readonly IQueueEvaluationScheduler _scheduler;
 
     /// <summary>
-    /// Create an engine. Null dependencies use the offline defaults:
-    /// <see cref="DispatchPolicy.Default"/>, <see cref="NullLlmAdvisor"/>,
-    /// a private <see cref="ResourceTokenReleaseGate"/>, and <see cref="ParallelQueueScheduler.Instance"/>.
-    /// Share one gate across every engine that can move the same hardware.
+    /// 创建引擎。依赖项为 null 时使用离线默认值：
+    /// <see cref="DispatchPolicy.Default"/>、<see cref="NullLlmAdvisor"/>、
+    /// 私有的 <see cref="ResourceTokenReleaseGate"/>，以及 <see cref="ParallelQueueScheduler.Instance"/>。
+    /// 凡是能驱动同一硬件的引擎，必须共用同一个放行闸。
     /// </summary>
     public DispatchEngine(
         DispatchPolicy? policy = null,

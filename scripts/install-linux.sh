@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Engineering / spare PC setup. The plant target is Windows; see install-windows.ps1.
-# Nothing is downloaded unless you pass --download-model or --install-ollama.
+# 工程机或备用机的安装。现场目标机是 Windows，见 install-windows.ps1。
+# 除非传入 --download-model 或 --install-ollama，否则不会下载任何内容。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
